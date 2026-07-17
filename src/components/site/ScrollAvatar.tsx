@@ -64,9 +64,9 @@ export function ScrollAvatar() {
   };
 
   return (
-    <div className="pointer-events-none fixed bottom-2 right-2 z-50 flex flex-col items-end gap-2 md:bottom-4 md:right-4">
+    <div className="scroll-avatar-root pointer-events-none fixed bottom-2 right-2 z-50 flex max-w-[min(42vw,9rem)] flex-col items-end gap-2 sm:max-w-none md:bottom-4 md:right-4">
       {msg && (
-        <div className="pointer-events-auto max-w-[220px] animate-float-up rounded-2xl rounded-br-sm border border-border bg-white px-4 py-2.5 text-sm font-medium text-ink shadow-medium">
+        <div className="pointer-events-auto max-w-[min(70vw,220px)] animate-float-up rounded-2xl rounded-br-sm border border-border bg-white px-3 py-2 text-sm font-medium text-ink shadow-medium sm:px-4 sm:py-2.5">
           {msg}
         </div>
       )}

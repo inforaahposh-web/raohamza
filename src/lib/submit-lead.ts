@@ -31,10 +31,88 @@ export function buildLeadTelegramText(lead: LeadPayload) {
     .join("\n");
 }
 
+export function normalizeTelegramUsername(username: string) {
+  return username.replace(/^@/, "").trim();
+}
+
+/** https://t.me — works on desktop / when the app is not installed */
 export function buildTelegramChatUrl(username: string, text: string) {
-  const user = username.replace(/^@/, "").trim();
+  const user = normalizeTelegramUsername(username);
   if (!user) return "";
   return `https://t.me/${user}?text=${encodeURIComponent(text)}`;
+}
+
+/** tg:// deep link — opens the Telegram app when installed */
+export function buildTelegramAppUrl(username: string, text: string) {
+  const user = normalizeTelegramUsername(username);
+  if (!user) return "";
+  return `tg://resolve?domain=${encodeURIComponent(user)}&text=${encodeURIComponent(text)}`;
+}
+
+export function isMobileTelegramClient() {
+  if (typeof navigator === "undefined") return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(
+    navigator.userAgent,
+  );
+}
+
+/**
+ * Open Telegram without leaving a dead browser tab on mobile.
+ * Mobile: fire tg:// via hidden iframe so the page can still navigate to thank-you.
+ * Desktop: https://t.me in a new tab.
+ * Thank-you page also tries same-window tg:// for stronger mobile app handoff.
+ */
+export function openTelegramChat(username: string, text: string) {
+  const appUrl = buildTelegramAppUrl(username, text);
+  const webUrl = buildTelegramChatUrl(username, text);
+  if (!appUrl && !webUrl) return;
+
+  if (typeof window === "undefined") return;
+
+  if (isMobileTelegramClient() && appUrl) {
+    try {
+      const iframe = document.createElement("iframe");
+      iframe.setAttribute("aria-hidden", "true");
+      iframe.style.cssText = "display:none;width:0;height:0;border:0;position:absolute";
+      iframe.src = appUrl;
+      document.body.appendChild(iframe);
+      window.setTimeout(() => iframe.remove(), 2000);
+    } catch {
+      /* ignore */
+    }
+    return;
+  }
+
+  if (webUrl) {
+    window.open(webUrl, "_blank", "noopener,noreferrer");
+  }
+}
+
+/** Click handler for thank-you / CTA: app first, then https fallback */
+export function handleTelegramOpenClick(
+  event: { preventDefault: () => void },
+  opts: { appUrl?: string; webUrl?: string },
+) {
+  const { appUrl = "", webUrl = "" } = opts;
+  if (!appUrl && !webUrl) return;
+
+  if (isMobileTelegramClient() && appUrl) {
+    event.preventDefault();
+    const started = Date.now();
+    window.location.href = appUrl;
+    window.setTimeout(() => {
+      // If the app did not take over, fall back to https in the same window
+      if (!document.hidden && Date.now() - started < 2800 && webUrl) {
+        window.location.href = webUrl;
+      }
+    }, 1400);
+    return;
+  }
+
+  if (webUrl) {
+    event.preventDefault();
+    window.open(webUrl, "_blank", "noopener,noreferrer");
+  }
 }
 
 function leadEmailBody(lead: ContactLead) {
@@ -144,13 +222,17 @@ export async function submitContactLead(input: {
     emailResult = { ok: false, skipped: false, error: "Email notify failed" };
   }
 
-  const telegramUrl = buildTelegramChatUrl(input.telegramUsername || "", buildLeadTelegramText(data));
+  const text = buildLeadTelegramText(data);
+  const telegramUsername = normalizeTelegramUsername(input.telegramUsername || "");
+  const telegramUrl = buildTelegramChatUrl(telegramUsername, text);
+  const telegramAppUrl = buildTelegramAppUrl(telegramUsername, text);
 
   return {
     ok: true as const,
     leadId: lead.id,
     telegramUrl,
-    telegramUsername: (input.telegramUsername || "").replace(/^@/, "").trim(),
+    telegramAppUrl,
+    telegramUsername,
     notifications: { email: emailResult },
   };
 }
