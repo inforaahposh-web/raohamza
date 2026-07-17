@@ -105,16 +105,51 @@ export const DEFAULTS: SectionMap = {
   avatar_messages: { items: D.avatar_messages },
 };
 
+const DEFAULT_CASE_STUDIES: CaseStudyRow[] = defaults.caseStudies.map((cs, i) => ({
+  id: cs.slug,
+  slug: cs.slug,
+  title: cs.title,
+  industry: cs.industry,
+  client: cs.client,
+  country: cs.country,
+  duration: cs.duration,
+  platforms: cs.platforms,
+  summary: cs.summary,
+  tags: cs.tags,
+  results: cs.results,
+  challenge: cs.challenge,
+  goal: cs.goal,
+  strategy: cs.strategy,
+  outcome: cs.outcome,
+  funnel_html: null,
+  ad_creatives: [],
+  campaign_stat_images: [],
+  cover_image_url: null,
+  sort_order: i + 1,
+  published: true,
+}));
+
+async function fetchSection<K extends keyof SectionMap>(key: K): Promise<SectionMap[K]> {
+  try {
+    const { data, error } = await supabase.from("site_settings").select("data").eq("key", key).maybeSingle();
+    if (error) {
+      console.warn(`[cms] ${key}:`, error.message);
+      return DEFAULTS[key];
+    }
+    if (!data) return DEFAULTS[key];
+    return { ...(DEFAULTS[key] as object), ...(data.data as object) } as SectionMap[K];
+  } catch (e) {
+    console.warn(`[cms] ${key}:`, e);
+    return DEFAULTS[key];
+  }
+}
+
 // ---------- Reads ----------
 export function useSection<K extends keyof SectionMap>(key: K) {
   return useQuery({
     queryKey: ["cms", "section", key],
-    queryFn: async (): Promise<SectionMap[K]> => {
-      const { data, error } = await supabase.from("site_settings").select("data").eq("key", key).maybeSingle();
-      if (error) throw error;
-      if (!data) return DEFAULTS[key];
-      return { ...(DEFAULTS[key] as object), ...(data.data as object) } as SectionMap[K];
-    },
+    queryFn: () => fetchSection(key),
+    initialData: DEFAULTS[key],
     staleTime: 30_000,
   });
 }
@@ -123,25 +158,45 @@ export function useCaseStudies() {
   return useQuery({
     queryKey: ["cms", "case_studies"],
     queryFn: async (): Promise<CaseStudyRow[]> => {
-      const { data, error } = await supabase
-        .from("case_studies")
-        .select("*")
-        .order("sort_order", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as unknown as CaseStudyRow[];
+      try {
+        const { data, error } = await supabase
+          .from("case_studies")
+          .select("*")
+          .order("sort_order", { ascending: true });
+        if (error) {
+          console.warn("[cms] case_studies:", error.message);
+          return DEFAULT_CASE_STUDIES;
+        }
+        if (!data?.length) return DEFAULT_CASE_STUDIES;
+        return (data ?? []) as unknown as CaseStudyRow[];
+      } catch (e) {
+        console.warn("[cms] case_studies:", e);
+        return DEFAULT_CASE_STUDIES;
+      }
     },
+    initialData: DEFAULT_CASE_STUDIES,
     staleTime: 30_000,
   });
 }
 
 export function useCaseStudy(slug: string) {
+  const fallback = DEFAULT_CASE_STUDIES.find((c) => c.slug === slug) ?? null;
   return useQuery({
     queryKey: ["cms", "case_study", slug],
     queryFn: async (): Promise<CaseStudyRow | null> => {
-      const { data, error } = await supabase.from("case_studies").select("*").eq("slug", slug).maybeSingle();
-      if (error) throw error;
-      return (data ?? null) as unknown as CaseStudyRow | null;
+      try {
+        const { data, error } = await supabase.from("case_studies").select("*").eq("slug", slug).maybeSingle();
+        if (error) {
+          console.warn(`[cms] case_study/${slug}:`, error.message);
+          return fallback;
+        }
+        return (data ?? fallback) as unknown as CaseStudyRow | null;
+      } catch (e) {
+        console.warn(`[cms] case_study/${slug}:`, e);
+        return fallback;
+      }
     },
+    initialData: fallback ?? undefined,
     staleTime: 30_000,
   });
 }

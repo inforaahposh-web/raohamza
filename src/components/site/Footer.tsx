@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { nav } from "@/lib/site-data";
-import { useSection } from "@/lib/cms";
+import { DEFAULTS, useSection } from "@/lib/cms";
 import { ArrowUpRight } from "lucide-react";
 
 export function Footer() {
-  const { data: site } = useSection("site");
-  if (!site) return null;
+  const { data } = useSection("site");
+  const site = data ?? DEFAULTS.site;
   return (
     <footer className="mt-24 bg-dark-bg text-dark-fg">
       <div className="container-x py-20">
