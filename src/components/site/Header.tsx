@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { nav } from "@/lib/site-data";
 import { useSection } from "@/lib/cms";
 import { Menu, X } from "lucide-react";
+import avatarMark from "@/assets/avatar.png";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -29,13 +30,17 @@ export function Header() {
         headerSolid ? "border-b border-border bg-white/95 backdrop-blur-xl shadow-soft" : "bg-transparent"
       }`}
     >
-      <div className="container-x flex h-16 items-center justify-between md:h-20">
-        <Link to="/" className="group flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-ink text-white font-display font-bold text-sm shadow-soft transition-transform duration-300 group-hover:-rotate-6">
-            {siteName.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+      <div className="container-x flex h-16 items-center justify-between gap-3 md:h-20">
+        <Link to="/" className="group flex min-w-0 items-center gap-2.5">
+          <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-ink shadow-soft transition-transform duration-300 group-hover:-rotate-6">
+            <img
+              src={avatarMark}
+              alt=""
+              className="h-full w-full object-cover object-[center_12%]"
+            />
           </span>
-          <span className="font-display text-base font-bold tracking-tight text-ink">
-            {siteName.split(" ")[0]}<span className="italic-purple">.</span>
+          <span className="truncate font-display text-sm font-bold tracking-tight text-ink sm:text-base">
+            {siteName}<span className="italic-purple">.</span>
           </span>
         </Link>
 
