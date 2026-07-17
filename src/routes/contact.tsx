@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
-import { ArrowUpRight, CheckCircle2, Mail, MapPin, Clock, MessageCircle } from "lucide-react";
+import { useState, type FormEvent, type ReactNode } from "react";
+import { ArrowUpRight, Mail, MapPin, Clock, MessageCircle } from "lucide-react";
+import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal } from "@/components/site/Reveal";
-import { site } from "@/lib/site-data";
+import { useSection } from "@/lib/cms";
+import { submitContactLead } from "@/lib/submit-lead";
+import { site as fallbackSite } from "@/lib/site-data";
 
 export const Route = createFileRoute("/contact")({
   component: ContactPage,
@@ -18,12 +21,37 @@ export const Route = createFileRoute("/contact")({
 });
 
 function ContactPage() {
-  const [sent, setSent] = useState(false);
+  const { data: siteData } = useSection("site");
+  const site = siteData ?? fallbackSite;
+  const [sending, setSending] = useState(false);
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO: wire to Cloud when admin panel is added
-    setSent(true);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    setSending(true);
+    try {
+      await submitContactLead({
+        data: {
+          name: String(fd.get("name") ?? ""),
+          email: String(fd.get("email") ?? ""),
+          company: String(fd.get("company") ?? ""),
+          budget: String(fd.get("budget") ?? ""),
+          brief: String(fd.get("brief") ?? ""),
+        },
+      });
+      // Full page reload to thank-you — visitor never goes to WhatsApp
+      window.location.assign("/thank-you");
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Could not submit. Please try again.";
+      toast.error(msg);
+      setSending(false);
+    }
   };
 
   return (
@@ -31,13 +59,13 @@ function ContactPage() {
       <section className="container-x pt-14 pb-16 md:pt-24 md:pb-24">
         <div className="grid gap-14 md:grid-cols-[1.1fr_1fr] md:gap-16">
           <div>
-            <Reveal>
+            <Reveal immediate>
               <p className="text-sm font-semibold uppercase tracking-widest text-primary">Contact</p>
               <h1 className="mt-4 font-display text-5xl font-bold leading-[0.95] text-ink md:text-8xl">
                 Let's <span className="italic-purple">talk</span> numbers.
               </h1>
             </Reveal>
-            <Reveal delay={120}>
+            <Reveal immediate delay={120}>
               <p className="mt-6 max-w-md text-lg text-body">
                 Tell me a bit about the account, the offer and where you're stuck. I'll come back within a day with a candid take.
               </p>
@@ -60,36 +88,26 @@ function ContactPage() {
             </div>
           </div>
 
-          <Reveal delay={140}>
+          <Reveal immediate delay={140}>
             <form onSubmit={onSubmit} className="rounded-[28px] border border-border bg-white p-6 shadow-medium md:p-10">
-              {sent ? (
-                <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-                  <span className="grid h-14 w-14 place-items-center rounded-full bg-primary-soft">
-                    <CheckCircle2 className="h-7 w-7 text-primary" />
-                  </span>
-                  <p className="font-display text-2xl font-bold text-ink">Got it — talk soon.</p>
-                  <p className="text-body">I'll respond within one business day.</p>
+              <div className="grid gap-4">
+                <Field name="name" label="Your name" required />
+                <Field name="email" type="email" label="Email" required />
+                <Field name="company" label="Company / brand" />
+                <Field name="budget" label="Monthly ad spend (approx.)" />
+                <div>
+                  <label htmlFor="brief" className="mb-2 block text-sm font-semibold text-ink">Brief</label>
+                  <textarea
+                    id="brief" name="brief" rows={5} required
+                    placeholder="Offer, target market, current numbers, where you're stuck…"
+                    className="w-full resize-none rounded-2xl border border-border bg-secondary px-4 py-3 text-ink outline-none transition-colors focus:border-primary focus:bg-white"
+                  />
                 </div>
-              ) : (
-                <div className="grid gap-4">
-                  <Field name="name" label="Your name" required />
-                  <Field name="email" type="email" label="Email" required />
-                  <Field name="company" label="Company / brand" />
-                  <Field name="budget" label="Monthly ad spend (approx.)" />
-                  <div>
-                    <label htmlFor="brief" className="mb-2 block text-sm font-semibold text-ink">Brief</label>
-                    <textarea
-                      id="brief" name="brief" rows={5} required
-                      placeholder="Offer, target market, current numbers, where you're stuck…"
-                      className="w-full resize-none rounded-2xl border border-border bg-secondary px-4 py-3 text-ink outline-none transition-colors focus:border-primary focus:bg-white"
-                    />
-                  </div>
-                  <button type="submit" className="btn-primary mt-2 w-full justify-center">
-                    Send brief <ArrowUpRight className="h-4 w-4" />
-                  </button>
-                  <p className="text-xs text-body-light">By submitting you agree to be contacted about your enquiry.</p>
-                </div>
-              )}
+                <button type="submit" disabled={sending} className="btn-primary mt-2 w-full justify-center">
+                  {sending ? "Sending…" : "Send brief"} <ArrowUpRight className="h-4 w-4" />
+                </button>
+                <p className="text-xs text-body-light">By submitting you agree to be contacted about your enquiry.</p>
+              </div>
             </form>
           </Reveal>
         </div>
@@ -98,7 +116,7 @@ function ContactPage() {
   );
 }
 
-function Info({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: string; href?: string }) {
+function Info({ icon, label, value, href }: { icon: ReactNode; label: string; value: string; href?: string }) {
   const inner = (
     <div className="flex items-center gap-4 rounded-2xl border border-border bg-white p-4 transition-colors hover:border-primary">
       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">{icon}</span>

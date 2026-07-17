@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsAdmin, uploadMedia, DEFAULTS, normalizeCaseStudy, slugify, MEDIA_ASPECT_OPTIONS, upsertSiteSection, fetchFunnelLibraryAll, upsertFunnelLibraryItems, type CaseStudyRow, type MediaAspect, type ResultKPI, type MediaItem, type ClientReview, type FunnelLibraryItem, type FunnelKind } from "@/lib/cms";
+import { useIsAdmin, uploadMedia, DEFAULTS, normalizeCaseStudy, slugify, MEDIA_ASPECT_OPTIONS, upsertSiteSection, fetchFunnelLibraryAll, upsertFunnelLibraryItems, fetchContactLeads, type CaseStudyRow, type MediaAspect, type ResultKPI, type MediaItem, type ClientReview, type FunnelLibraryItem, type FunnelKind, type ContactLeadRow } from "@/lib/cms";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,6 +90,7 @@ function AdminPage() {
               <TabsTrigger value="hero" className="flex-1 sm:flex-none">Hero & Images</TabsTrigger>
               <TabsTrigger value="sections" className="flex-1 sm:flex-none">Site sections</TabsTrigger>
               <TabsTrigger value="reviews" className="flex-1 sm:flex-none">Reviews</TabsTrigger>
+              <TabsTrigger value="leads" className="flex-1 sm:flex-none">Leads</TabsTrigger>
               <TabsTrigger value="funnels" className="flex-1 sm:flex-none">Prelanders & Funnels</TabsTrigger>
               <TabsTrigger value="footer" className="flex-1 sm:flex-none">Footer</TabsTrigger>
               <TabsTrigger value="cases" className="flex-1 sm:flex-none">Case studies</TabsTrigger>
@@ -104,6 +105,9 @@ function AdminPage() {
           </TabsContent>
           <TabsContent value="reviews" className="mt-0">
             <ClientReviewsManager />
+          </TabsContent>
+          <TabsContent value="leads" className="mt-0">
+            <LeadsManager />
           </TabsContent>
           <TabsContent value="funnels" className="mt-0">
             <FunnelLibraryManager onEditingChange={setFunnelEditing} />
@@ -354,6 +358,67 @@ function ServicesSectionEditor() {
         </div>
       ))}
       <Button onClick={save}><Save className="h-4 w-4" /> Save services</Button>
+    </div>
+  );
+}
+
+function LeadsManager() {
+  const qc = useQueryClient();
+  const { data: leads = [], isLoading, refetch } = useQuery({
+    queryKey: ["admin", "contact_leads"],
+    queryFn: fetchContactLeads,
+  });
+
+  async function remove(id: string) {
+    const next = leads.filter((l) => l.id !== id);
+    const { error } = await supabase
+      .from("site_settings")
+      .upsert({ key: "contact_leads", data: { items: next } as never }, { onConflict: "key" });
+    if (error) return toast.error(formatSupabaseError(error));
+    toast.success("Lead deleted");
+    await refetch();
+    qc.invalidateQueries({ queryKey: ["admin", "contact_leads"] });
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-white p-6 space-y-6">
+      <div>
+        <h2 className="font-display text-2xl font-bold text-ink">Contact leads</h2>
+        <p className="mt-1 text-sm text-body">
+          Leads from the contact form. They also notify your WhatsApp/email when those are configured.
+        </p>
+      </div>
+
+      {isLoading ? (
+        <p className="text-sm text-body-light">Loading…</p>
+      ) : leads.length === 0 ? (
+        <p className="text-sm text-body-light">No leads yet.</p>
+      ) : (
+        <div className="space-y-3">
+          {leads.map((lead: ContactLeadRow) => (
+            <div key={lead.id} className="rounded-xl border border-border p-4 space-y-2">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-ink">{lead.name}</p>
+                  <a href={`mailto:${lead.email}`} className="text-sm text-primary hover:underline">{lead.email}</a>
+                  {(lead.company || lead.budget) && (
+                    <p className="mt-1 text-sm text-body-light">
+                      {[lead.company, lead.budget].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-body-light">
+                    {lead.created_at ? new Date(lead.created_at).toLocaleString() : ""}
+                  </p>
+                </div>
+                <Button size="sm" variant="destructive" onClick={() => remove(lead.id)}>
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+              <p className="text-sm text-body whitespace-pre-wrap">{lead.brief}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

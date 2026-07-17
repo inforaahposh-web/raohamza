@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ThankYouRouteImport } from './routes/thank-you'
 import { Route as FunnelsRouteImport } from './routes/funnels'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CaseStudiesIndexRouteImport } from './routes/case-studies.index'
@@ -18,6 +19,11 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CaseStudiesSlugRouteImport } from './routes/case-studies.$slug'
 
+const ThankYouRoute = ThankYouRouteImport.update({
+  id: '/thank-you',
+  path: '/thank-you',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FunnelsRoute = FunnelsRouteImport.update({
   id: '/funnels',
   path: '/funnels',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/case-studies': typeof CaseStudiesIndexRoute
   '/contact': typeof ContactRoute
   '/funnels': typeof FunnelsRoute
+  '/thank-you': typeof ThankYouRoute
   '/case-studies/$slug': typeof CaseStudiesSlugRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/case-studies': typeof CaseStudiesIndexRoute
   '/contact': typeof ContactRoute
   '/funnels': typeof FunnelsRoute
+  '/thank-you': typeof ThankYouRoute
   '/case-studies/$slug': typeof CaseStudiesSlugRoute
 }
 export interface FileRoutesById {
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/case-studies/': typeof CaseStudiesIndexRoute
   '/contact': typeof ContactRoute
   '/funnels': typeof FunnelsRoute
+  '/thank-you': typeof ThankYouRoute
   '/case-studies/$slug': typeof CaseStudiesSlugRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/case-studies'
     | '/contact'
     | '/funnels'
+    | '/thank-you'
     | '/case-studies/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/case-studies'
     | '/contact'
     | '/funnels'
+    | '/thank-you'
     | '/case-studies/$slug'
   id:
     | '__root__'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/case-studies/'
     | '/contact'
     | '/funnels'
+    | '/thank-you'
     | '/case-studies/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -131,11 +143,19 @@ export interface RootRouteChildren {
   CaseStudiesIndexRoute: typeof CaseStudiesIndexRoute
   ContactRoute: typeof ContactRoute
   FunnelsRoute: typeof FunnelsRoute
+  ThankYouRoute: typeof ThankYouRoute
   CaseStudiesSlugRoute: typeof CaseStudiesSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/thank-you': {
+      id: '/thank-you'
+      path: '/thank-you'
+      fullPath: '/thank-you'
+      preLoaderRoute: typeof ThankYouRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/funnels': {
       id: '/funnels'
       path: '/funnels'
@@ -203,6 +223,7 @@ const rootRouteChildren: RootRouteChildren = {
   CaseStudiesIndexRoute: CaseStudiesIndexRoute,
   ContactRoute: ContactRoute,
   FunnelsRoute: FunnelsRoute,
+  ThankYouRoute: ThankYouRoute,
   CaseStudiesSlugRoute: CaseStudiesSlugRoute,
 }
 export const routeTree = rootRouteImport

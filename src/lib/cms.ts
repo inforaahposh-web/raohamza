@@ -522,3 +522,47 @@ export function useFunnelLibrary() {
     refetchOnWindowFocus: false,
   });
 }
+
+// ---------- Contact leads (admin) ----------
+export type ContactLeadRow = {
+  id: string;
+  name: string;
+  email: string;
+  company?: string;
+  budget?: string;
+  brief: string;
+  created_at: string;
+  source?: string;
+};
+
+export async function fetchContactLeads(): Promise<ContactLeadRow[]> {
+  try {
+    const { data, error } = await supabase
+      .from("site_settings")
+      .select("data")
+      .eq("key", "contact_leads")
+      .maybeSingle();
+    if (error) {
+      console.warn("[cms] contact_leads:", error.message);
+      return [];
+    }
+    const raw = (data?.data as { items?: unknown[] } | null)?.items;
+    if (!Array.isArray(raw)) return [];
+    return raw.map((row) => {
+      const r = (row ?? {}) as Record<string, unknown>;
+      return {
+        id: String(r.id ?? crypto.randomUUID()),
+        name: String(r.name ?? ""),
+        email: String(r.email ?? ""),
+        company: String(r.company ?? ""),
+        budget: String(r.budget ?? ""),
+        brief: String(r.brief ?? ""),
+        created_at: String(r.created_at ?? ""),
+        source: String(r.source ?? "contact"),
+      };
+    });
+  } catch (e) {
+    console.warn("[cms] contact_leads:", e);
+    return [];
+  }
+}
