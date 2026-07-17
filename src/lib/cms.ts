@@ -1,4 +1,4 @@
-// CMS hooks — read/write for site_settings + case_studies via Lovable Cloud.
+// CMS hooks — read/write for site_settings + case_studies via Supabase.
 // Falls back to static defaults from site-data.ts when the DB is empty or loading.
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -265,7 +265,17 @@ async function fetchSection<K extends keyof SectionMap>(key: K): Promise<Section
       return DEFAULTS[key];
     }
     if (!data) return DEFAULTS[key];
-    return { ...(DEFAULTS[key] as object), ...(data.data as object) } as SectionMap[K];
+    const merged = { ...(DEFAULTS[key] as object), ...(data.data as object) } as SectionMap[K];
+    if (key === "stack") {
+      const stack = merged as SectionMap["stack"];
+      return {
+        items: stack.items.map((group) => ({
+          ...group,
+          items: group.items.map((item) => (item === "Lovable" ? "React" : item)),
+        })),
+      } as SectionMap[K];
+    }
+    return merged;
   } catch (e) {
     console.warn(`[cms] ${key}:`, e);
     return DEFAULTS[key];

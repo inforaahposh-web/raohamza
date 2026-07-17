@@ -56,7 +56,7 @@ export const services = [
 export const stack = [
   { cat: "Ad Platforms", items: ["Meta Ads", "Google Ads", "TikTok Ads", "Snapchat Ads", "LinkedIn Ads", "YouTube Ads"] },
   { cat: "Tracking", items: ["Meta Pixel", "Conversions API", "Google Tag Manager", "GA4", "Looker Studio", "Trackbox"] },
-  { cat: "Web & CMS", items: ["Shopify", "WordPress", "Lovable"] },
+  { cat: "Web & CMS", items: ["Shopify", "WordPress", "React"] },
   { cat: "Automation", items: ["Zapier", "n8n", "Make"] },
   { cat: "CRM", items: ["HubSpot", "Go High Level", "Zoho CRM"] },
   { cat: "AI Copilots", items: ["ChatGPT", "Claude", "Gemini"] },
