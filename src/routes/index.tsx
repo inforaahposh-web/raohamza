@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, Sparkles, CheckCircle2, ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal, Counter } from "@/components/site/Reveal";
-import { useSection, useCaseStudies, cleanSlug } from "@/lib/cms";
+import { useSection, useCaseStudies, useClientReviews, submitClientReview, cleanSlug } from "@/lib/cms";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -305,30 +306,126 @@ function CaseStudiesSection() {
 }
 
 function TestimonialsSection() {
-  const { data } = useSection("testimonials");
-  if (!data) return null;
+  const { data: reviews = [], isLoading } = useClientReviews();
+  const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
+  const [quote, setQuote] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    setSending(true);
+    try {
+      await submitClientReview({ name, title, quote });
+      setSent(true);
+      setName("");
+      setTitle("");
+      setQuote("");
+      toast.success("Thanks — your review was submitted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not submit review");
+    } finally {
+      setSending(false);
+    }
+  }
+
   return (
     <section className="bg-secondary py-20 md:py-28">
       <div className="container-x">
         <Reveal>
-          <p className="text-sm font-semibold uppercase tracking-widest text-primary">Kind words</p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-primary">Testimonials</p>
           <h2 className="mt-3 max-w-3xl font-display text-4xl font-bold text-ink md:text-6xl">
-            From <span className="italic-purple">operators</span> who ship.
+            What <span className="italic-purple">clients</span> say.
           </h2>
+          <p className="mt-4 max-w-xl text-body">
+            Real reviews from people I've worked with. Leave yours below — it goes live after a quick check.
+          </p>
         </Reveal>
-        <div className="mt-12 grid gap-5 md:grid-cols-3">
-          {data.items.map((t, i) => (
-            <Reveal key={`${t.name}-${i}`} delay={i * 80}>
-              <figure className="h-full rounded-[22px] border border-border bg-white p-7 shadow-soft">
-                <blockquote className="font-display text-xl leading-snug text-ink">"{t.quote}"</blockquote>
-                <figcaption className="mt-6 border-t border-border pt-4">
-                  <p className="font-semibold text-ink">{t.name}</p>
-                  <p className="text-sm text-body-light">{t.title}</p>
-                </figcaption>
-              </figure>
-            </Reveal>
-          ))}
-        </div>
+
+        {isLoading ? (
+          <p className="mt-12 text-sm text-body-light">Loading reviews…</p>
+        ) : reviews.length > 0 ? (
+          <div className="mt-12 grid gap-5 md:grid-cols-3">
+            {reviews.map((t, i) => (
+              <Reveal key={t.id} delay={i * 60}>
+                <figure className="h-full rounded-[22px] border border-border bg-white p-7 shadow-soft">
+                  <blockquote className="font-display text-xl leading-snug text-ink">"{t.quote}"</blockquote>
+                  <figcaption className="mt-6 border-t border-border pt-4">
+                    <p className="font-semibold text-ink">{t.name}</p>
+                    {t.title ? <p className="text-sm text-body-light">{t.title}</p> : null}
+                  </figcaption>
+                </figure>
+              </Reveal>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-12 text-sm text-body-light">No client reviews yet — be the first.</p>
+        )}
+
+        <Reveal delay={120}>
+          <div className="mt-14 max-w-2xl rounded-[28px] border border-border bg-white p-6 shadow-soft md:p-8">
+            <h3 className="font-display text-2xl font-bold text-ink">Write a review</h3>
+            <p className="mt-2 text-sm text-body">Share your experience working together.</p>
+
+            {sent ? (
+              <div className="mt-8 flex flex-col items-center gap-3 py-8 text-center">
+                <span className="grid h-12 w-12 place-items-center rounded-full bg-primary-soft">
+                  <CheckCircle2 className="h-6 w-6 text-primary" />
+                </span>
+                <p className="font-display text-xl font-bold text-ink">Thanks for the review</p>
+                <p className="text-sm text-body">It will appear here after approval.</p>
+                <button type="button" className="mt-2 text-sm font-medium text-primary hover:underline" onClick={() => setSent(false)}>
+                  Write another
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={onSubmit} className="mt-6 grid gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label htmlFor="review-name" className="mb-2 block text-sm font-semibold text-ink">Your name *</label>
+                    <input
+                      id="review-name"
+                      required
+                      maxLength={80}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full rounded-2xl border border-border bg-secondary px-4 py-3 text-ink outline-none transition-colors focus:border-primary focus:bg-white"
+                      placeholder="e.g. M. Farooq"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="review-title" className="mb-2 block text-sm font-semibold text-ink">Role / company</label>
+                    <input
+                      id="review-title"
+                      maxLength={120}
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full rounded-2xl border border-border bg-secondary px-4 py-3 text-ink outline-none transition-colors focus:border-primary focus:bg-white"
+                      placeholder="e.g. Founder · DTC Apparel"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="review-quote" className="mb-2 block text-sm font-semibold text-ink">Your review *</label>
+                  <textarea
+                    id="review-quote"
+                    required
+                    rows={4}
+                    maxLength={800}
+                    value={quote}
+                    onChange={(e) => setQuote(e.target.value)}
+                    className="w-full resize-none rounded-2xl border border-border bg-secondary px-4 py-3 text-ink outline-none transition-colors focus:border-primary focus:bg-white"
+                    placeholder="What was it like working together?"
+                  />
+                </div>
+                <button type="submit" disabled={sending} className="btn-primary w-full justify-center sm:w-auto">
+                  {sending ? "Submitting…" : "Submit review"} <ArrowUpRight className="h-4 w-4" />
+                </button>
+              </form>
+            )}
+          </div>
+        </Reveal>
       </div>
     </section>
   );

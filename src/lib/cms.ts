@@ -340,3 +340,55 @@ export async function upsertSiteSection<K extends keyof SectionMap>(key: K, data
     .upsert({ key, data: data as never }, { onConflict: "key" });
   if (error) throw error;
 }
+
+// ---------- Client reviews ----------
+export type ClientReview = {
+  id: string;
+  name: string;
+  title: string;
+  quote: string;
+  approved: boolean;
+  created_at: string;
+};
+
+async function fetchApprovedReviews(): Promise<ClientReview[]> {
+  try {
+    const { data, error } = await supabase
+      .from("client_reviews")
+      .select("*")
+      .eq("approved", true)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.warn("[cms] client_reviews:", error.message);
+      return [];
+    }
+    return (data ?? []) as ClientReview[];
+  } catch (e) {
+    console.warn("[cms] client_reviews:", e);
+    return [];
+  }
+}
+
+export function useClientReviews() {
+  return useQuery({
+    queryKey: ["cms", "client_reviews"],
+    queryFn: fetchApprovedReviews,
+    staleTime: 15_000,
+    refetchOnMount: true,
+  });
+}
+
+export async function submitClientReview(input: { name: string; title: string; quote: string }) {
+  const name = input.name.trim();
+  const title = input.title.trim();
+  const quote = input.quote.trim();
+  if (!name || !quote) throw new Error("Name and review are required");
+  if (quote.length > 800) throw new Error("Review is too long (max 800 characters)");
+  const { error } = await supabase.from("client_reviews").insert({
+    name,
+    title,
+    quote,
+    approved: false,
+  });
+  if (error) throw error;
+}

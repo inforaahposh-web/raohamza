@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_reviews: {
+        Row: {
+          id: string
+          name: string
+          title: string
+          quote: string
+          approved: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          title?: string
+          quote: string
+          approved?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          title?: string
+          quote?: string
+          approved?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
       case_studies: {
         Row: {
           ad_creatives: Json

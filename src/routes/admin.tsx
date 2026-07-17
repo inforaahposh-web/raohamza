@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsAdmin, uploadMedia, DEFAULTS, normalizeCaseStudy, slugify, MEDIA_ASPECT_OPTIONS, upsertSiteSection, type CaseStudyRow, type MediaAspect, type ResultKPI, type MediaItem } from "@/lib/cms";
+import { useIsAdmin, uploadMedia, DEFAULTS, normalizeCaseStudy, slugify, MEDIA_ASPECT_OPTIONS, upsertSiteSection, type CaseStudyRow, type MediaAspect, type ResultKPI, type MediaItem, type ClientReview } from "@/lib/cms";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +68,7 @@ function AdminPage() {
             <TabsList className="mb-6 flex h-auto w-full flex-wrap justify-start gap-1 bg-white p-1">
               <TabsTrigger value="hero" className="flex-1 sm:flex-none">Hero & Images</TabsTrigger>
               <TabsTrigger value="sections" className="flex-1 sm:flex-none">Site sections</TabsTrigger>
+              <TabsTrigger value="reviews" className="flex-1 sm:flex-none">Reviews</TabsTrigger>
               <TabsTrigger value="footer" className="flex-1 sm:flex-none">Footer</TabsTrigger>
               <TabsTrigger value="cases" className="flex-1 sm:flex-none">Case studies</TabsTrigger>
             </TabsList>
@@ -78,6 +79,9 @@ function AdminPage() {
           </TabsContent>
           <TabsContent value="sections" className="mt-0">
             <SectionsEditor />
+          </TabsContent>
+          <TabsContent value="reviews" className="mt-0">
+            <ClientReviewsManager />
           </TabsContent>
           <TabsContent value="footer" className="mt-0">
             <FooterSectionEditor />
@@ -205,7 +209,6 @@ function SectionsEditor() {
       <BioSectionEditor />
       <StatsSectionEditor />
       <ServicesSectionEditor />
-      <TestimonialsSectionEditor />
       <FaqsSectionEditor />
       <ExperienceSectionEditor />
       <ProcessSectionEditor />
@@ -330,29 +333,100 @@ function ServicesSectionEditor() {
   );
 }
 
-function TestimonialsSectionEditor() {
+function ClientReviewsManager() {
   const qc = useQueryClient();
-  const [data, setData] = useSectionState("testimonials");
-  if (!data) return null;
-  async function save() {
-    const { error } = await supabase.from("site_settings").upsert({ key: "testimonials", data: data as never });
+  const { data: reviews = [], isLoading } = useQuery({
+    queryKey: ["admin", "client_reviews"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_reviews")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as ClientReview[];
+    },
+  });
+
+  async function setApproved(id: string, approved: boolean) {
+    const { error } = await supabase.from("client_reviews").update({ approved }).eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success("Testimonials saved");
-    qc.invalidateQueries({ queryKey: ["cms"] });
+    toast.success(approved ? "Review published" : "Review hidden");
+    qc.invalidateQueries({ queryKey: ["admin", "client_reviews"] });
+    qc.invalidateQueries({ queryKey: ["cms", "client_reviews"] });
   }
+
+  async function remove(id: string) {
+    const { error } = await supabase.from("client_reviews").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Review deleted");
+    qc.invalidateQueries({ queryKey: ["admin", "client_reviews"] });
+    qc.invalidateQueries({ queryKey: ["cms", "client_reviews"] });
+  }
+
+  const pending = reviews.filter((r) => !r.approved);
+  const published = reviews.filter((r) => r.approved);
+
   return (
-    <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
-      <h3 className="font-display text-lg font-bold text-ink">Testimonials</h3>
-      {data.items.map((t, i) => (
-        <div key={i} className="space-y-2 rounded-xl border border-border p-4">
-          <Field label="Quote" value={t.quote} onChange={(v) => { const items = [...data.items]; items[i] = { ...t, quote: v }; setData({ ...data, items }); }} textarea />
-          <div className="grid gap-2 md:grid-cols-2">
-            <Field label="Name" value={t.name} onChange={(v) => { const items = [...data.items]; items[i] = { ...t, name: v }; setData({ ...data, items }); }} />
-            <Field label="Title" value={t.title} onChange={(v) => { const items = [...data.items]; items[i] = { ...t, title: v }; setData({ ...data, items }); }} />
-          </div>
+    <div className="rounded-2xl border border-border bg-white p-6 space-y-6">
+      <div>
+        <h2 className="font-display text-2xl font-bold text-ink">Client reviews</h2>
+        <p className="mt-1 text-sm text-body">Approve reviews submitted from the homepage. Only approved reviews show on the site.</p>
+      </div>
+
+      {isLoading ? (
+        <p className="text-sm text-body-light">Loading…</p>
+      ) : reviews.length === 0 ? (
+        <p className="text-sm text-body-light">No reviews submitted yet.</p>
+      ) : (
+        <>
+          {pending.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-primary">Pending ({pending.length})</h3>
+              {pending.map((r) => (
+                <ReviewAdminCard key={r.id} review={r} onApprove={() => setApproved(r.id, true)} onDelete={() => remove(r.id)} />
+              ))}
+            </div>
+          )}
+          {published.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-primary">Published ({published.length})</h3>
+              {published.map((r) => (
+                <ReviewAdminCard key={r.id} review={r} onHide={() => setApproved(r.id, false)} onDelete={() => remove(r.id)} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function ReviewAdminCard({
+  review,
+  onApprove,
+  onHide,
+  onDelete,
+}: {
+  review: ClientReview;
+  onApprove?: () => void;
+  onHide?: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-border p-4 space-y-3">
+      <blockquote className="text-ink">"{review.quote}"</blockquote>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-semibold text-ink">{review.name}</p>
+          {review.title ? <p className="text-sm text-body-light">{review.title}</p> : null}
+          <p className="text-xs text-body-light mt-1">{new Date(review.created_at).toLocaleString()}</p>
         </div>
-      ))}
-      <Button onClick={save}><Save className="h-4 w-4" /> Save testimonials</Button>
+        <div className="flex gap-2">
+          {onApprove && <Button size="sm" onClick={onApprove}>Approve</Button>}
+          {onHide && <Button size="sm" variant="outline" onClick={onHide}>Hide</Button>}
+          <Button size="sm" variant="destructive" onClick={onDelete}><Trash2 className="h-3 w-3" /></Button>
+        </div>
+      </div>
     </div>
   );
 }
