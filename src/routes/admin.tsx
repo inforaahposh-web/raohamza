@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsAdmin, uploadMedia, DEFAULTS, normalizeCaseStudy, slugify, MEDIA_ASPECT_OPTIONS, upsertSiteSection, type CaseStudyRow, type MediaAspect, type ResultKPI, type MediaItem, type ClientReview, type FunnelLibraryItem, type FunnelKind } from "@/lib/cms";
+import { useIsAdmin, uploadMedia, DEFAULTS, normalizeCaseStudy, slugify, MEDIA_ASPECT_OPTIONS, upsertSiteSection, fetchFunnelLibraryAll, upsertFunnelLibraryItems, type CaseStudyRow, type MediaAspect, type ResultKPI, type MediaItem, type ClientReview, type FunnelLibraryItem, type FunnelKind } from "@/lib/cms";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -679,28 +679,12 @@ function FunnelLibraryManager({ onEditingChange }: { onEditingChange?: (editing:
   const qc = useQueryClient();
   const { data: items = [], isLoading, refetch } = useQuery({
     queryKey: ["admin", "funnel_library"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("funnel_library")
-        .select("*")
-        .order("sort_order", { ascending: true });
-      if (error) throw error;
-      return (data ?? []).map((row) => ({
-        id: String(row.id),
-        title: String(row.title ?? ""),
-        description: String(row.description ?? ""),
-        kind: (row.kind === "prelander" ? "prelander" : "funnel") as FunnelKind,
-        html: String(row.html ?? ""),
-        sort_order: Number(row.sort_order ?? 0),
-        published: Boolean(row.published),
-        created_at: String(row.created_at ?? ""),
-        updated_at: String(row.updated_at ?? ""),
-      })) as FunnelLibraryItem[];
-    },
+    queryFn: fetchFunnelLibraryAll,
   });
 
   const [editing, setEditing] = useState<FunnelLibraryItem | null>(null);
   const [draft, setDraft] = useState<Partial<FunnelLibraryItem> | null>(null);
+  const [isNew, setIsNew] = useState(false);
 
   useEffect(() => {
     onEditingChange?.(!!editing);
@@ -708,21 +692,23 @@ function FunnelLibraryManager({ onEditingChange }: { onEditingChange?: (editing:
 
   function startNew(kind: FunnelKind) {
     const blank: FunnelLibraryItem = {
-      id: "",
+      id: crypto.randomUUID(),
       title: kind === "prelander" ? "New prelander" : "New funnel",
       description: "",
       kind,
       html: "",
       sort_order: (items?.length ?? 0) + 1,
       published: true,
-      created_at: "",
-      updated_at: "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
+    setIsNew(true);
     setEditing(blank);
     setDraft(blank);
   }
 
   function startEdit(item: FunnelLibraryItem) {
+    setIsNew(false);
     setEditing(item);
     setDraft({ ...item });
   }
@@ -730,48 +716,49 @@ function FunnelLibraryManager({ onEditingChange }: { onEditingChange?: (editing:
   function cancel() {
     setEditing(null);
     setDraft(null);
+    setIsNew(false);
   }
 
   async function save() {
     if (!draft?.title?.trim()) return toast.error("Title is required");
     if (!draft.html?.trim()) return toast.error("Paste funnel / prelander HTML or iframe");
-    const payload = {
+
+    const nextItem: FunnelLibraryItem = {
+      id: editing?.id || crypto.randomUUID(),
       title: draft.title.trim(),
       description: (draft.description ?? "").trim(),
       kind: (draft.kind === "prelander" ? "prelander" : "funnel") as FunnelKind,
       html: draft.html ?? "",
       sort_order: Number(draft.sort_order ?? 0),
       published: draft.published !== false,
+      created_at: editing?.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
+
+    const nextItems = isNew
+      ? [...items, nextItem]
+      : items.map((i) => (i.id === nextItem.id ? nextItem : i));
+
     try {
-      if (editing?.id) {
-        const { error } = await supabase.from("funnel_library").update(payload).eq("id", editing.id);
-        if (error) throw error;
-        toast.success("Saved");
-      } else {
-        const { error } = await supabase.from("funnel_library").insert(payload);
-        if (error) throw error;
-        toast.success("Created");
-      }
+      await upsertFunnelLibraryItems(nextItems);
+      toast.success(isNew ? "Created" : "Saved");
       cancel();
       await refetch();
       qc.invalidateQueries({ queryKey: ["cms", "funnel_library"] });
     } catch (e) {
-      const msg = formatSupabaseError(e);
-      if (/does not exist|Could not find the table|schema cache|PGRST205|404/i.test(msg)) {
-        toast.error("Database table missing — run funnel_library SQL in Supabase, then save again");
-      } else {
-        toast.error(msg || "Save failed");
-      }
+      toast.error(formatSupabaseError(e) || "Save failed");
     }
   }
 
   async function remove(id: string) {
-    const { error } = await supabase.from("funnel_library").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Deleted");
-    await refetch();
-    qc.invalidateQueries({ queryKey: ["cms", "funnel_library"] });
+    try {
+      await upsertFunnelLibraryItems(items.filter((i) => i.id !== id));
+      toast.success("Deleted");
+      await refetch();
+      qc.invalidateQueries({ queryKey: ["cms", "funnel_library"] });
+    } catch (e) {
+      toast.error(formatSupabaseError(e) || "Delete failed");
+    }
   }
 
   if (editing && draft) {
@@ -779,7 +766,7 @@ function FunnelLibraryManager({ onEditingChange }: { onEditingChange?: (editing:
       <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-2xl font-bold text-ink">
-            {editing.id ? "Edit" : "New"} {draft.kind === "prelander" ? "prelander" : "funnel"}
+            {isNew ? "New" : "Edit"} {draft.kind === "prelander" ? "prelander" : "funnel"}
           </h2>
           <div className="flex gap-2">
             <Button variant="outline" onClick={cancel}>Cancel</Button>

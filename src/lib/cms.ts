@@ -260,7 +260,9 @@ export async function fetchCaseStudyBySlug(slug: string): Promise<CaseStudyRow |
 
 async function fetchAllSettings(): Promise<Record<string, unknown>> {
   try {
-    const { data, error } = await supabase.from("site_settings").select("key, data");
+    // Only fetch known section keys — keeps heavy keys (e.g. funnel HTML) out of every page load.
+    const keys = Object.keys(DEFAULTS);
+    const { data, error } = await supabase.from("site_settings").select("key, data").in("key", keys);
     if (error) {
       console.warn("[cms] settings_all:", error.message);
       return {};
@@ -435,7 +437,7 @@ export async function submitClientReview(input: { name: string; title: string; q
   }
 }
 
-// ---------- Funnel / prelander library ----------
+// ---------- Funnel / prelander library (stored in site_settings — no extra SQL table needed) ----------
 export type FunnelKind = "prelander" | "funnel";
 
 export type FunnelLibraryItem = {
@@ -450,37 +452,66 @@ export type FunnelLibraryItem = {
   updated_at: string;
 };
 
+export type FunnelLibraryData = { items: FunnelLibraryItem[] };
+
+const FUNNEL_LIBRARY_KEY = "funnel_library";
+
 function normalizeFunnelItem(row: Record<string, unknown>): FunnelLibraryItem {
   const kind = row.kind === "prelander" ? "prelander" : "funnel";
   return {
-    id: String(row.id),
+    id: String(row.id || crypto.randomUUID()),
     title: String(row.title ?? ""),
     description: String(row.description ?? ""),
     kind,
     html: String(row.html ?? ""),
     sort_order: Number(row.sort_order ?? 0),
-    published: Boolean(row.published),
+    published: row.published !== false,
     created_at: String(row.created_at ?? ""),
     updated_at: String(row.updated_at ?? ""),
   };
 }
 
-async function fetchPublishedFunnelLibrary(): Promise<FunnelLibraryItem[]> {
+export async function fetchFunnelLibraryAll(): Promise<FunnelLibraryItem[]> {
   try {
     const { data, error } = await supabase
-      .from("funnel_library")
-      .select("*")
-      .eq("published", true)
-      .order("sort_order", { ascending: true });
+      .from("site_settings")
+      .select("data")
+      .eq("key", FUNNEL_LIBRARY_KEY)
+      .maybeSingle();
     if (error) {
       console.warn("[cms] funnel_library:", error.message);
       return [];
     }
-    return (data ?? []).map((row) => normalizeFunnelItem(row as Record<string, unknown>));
+    const raw = (data?.data as { items?: unknown[] } | null)?.items;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((row) => normalizeFunnelItem((row ?? {}) as Record<string, unknown>))
+      .sort((a, b) => a.sort_order - b.sort_order);
   } catch (e) {
     console.warn("[cms] funnel_library:", e);
     return [];
   }
+}
+
+async function fetchPublishedFunnelLibrary(): Promise<FunnelLibraryItem[]> {
+  const all = await fetchFunnelLibraryAll();
+  return all.filter((i) => i.published && i.html.trim());
+}
+
+export async function upsertFunnelLibraryItems(items: FunnelLibraryItem[]) {
+  const payload = {
+    items: items.map((i, idx) => ({
+      ...i,
+      id: i.id || crypto.randomUUID(),
+      sort_order: Number.isFinite(i.sort_order) ? i.sort_order : idx + 1,
+      updated_at: new Date().toISOString(),
+      created_at: i.created_at || new Date().toISOString(),
+    })),
+  };
+  const { error } = await supabase
+    .from("site_settings")
+    .upsert({ key: FUNNEL_LIBRARY_KEY, data: payload as never }, { onConflict: "key" });
+  if (error) throw error;
 }
 
 export function useFunnelLibrary() {
