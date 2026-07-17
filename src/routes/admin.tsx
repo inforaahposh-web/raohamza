@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsAdmin, uploadMedia, DEFAULTS, type CaseStudyRow } from "@/lib/cms";
+import { useIsAdmin, uploadMedia, DEFAULTS, normalizeCaseStudy, slugify, MEDIA_ASPECT_OPTIONS, type CaseStudyRow, type MediaAspect, type ResultKPI, type MediaItem } from "@/lib/cms";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -166,17 +167,266 @@ function ImagePickerRow({ label, url, onPick, onClear }: { label: string; url: s
   );
 }
 
-// ============= Sections JSON editor =============
+// ============= Sections editor (simple forms, no JSON) =============
 function SectionsEditor() {
   return (
     <div className="space-y-6">
-      <p className="text-sm text-body">Each section is stored as JSON. Edit the values below, keep the structure intact, and save.</p>
-      {SECTION_KEYS.filter((k) => k !== "hero").map((k) => <SectionCard key={k} sectionKey={k} />)}
+      <p className="text-sm text-body">Edit site content with simple fields — no JSON required.</p>
+      <SiteSectionEditor />
+      <BioSectionEditor />
+      <StatsSectionEditor />
+      <ServicesSectionEditor />
+      <TestimonialsSectionEditor />
+      <FaqsSectionEditor />
+      <ExperienceSectionEditor />
+      <ProcessSectionEditor />
+      <AvatarMessagesEditor />
+      <SectionCard sectionKey="stack" />
+      <SectionCard sectionKey="industries" />
     </div>
   );
 }
 
-function SectionCard({ sectionKey }: { sectionKey: SectionKey }) {
+function useSectionState<K extends SectionKey>(key: K) {
+  const [data, setData] = useState<(typeof DEFAULTS)[K] | null>(null);
+  useEffect(() => {
+    (async () => {
+      const { data: row } = await supabase.from("site_settings").select("data").eq("key", key).maybeSingle();
+      setData({ ...(DEFAULTS[key] as object), ...((row?.data ?? {}) as object) } as (typeof DEFAULTS)[K]);
+    })();
+  }, [key]);
+  return [data, setData] as const;
+}
+
+function SiteSectionEditor() {
+  const qc = useQueryClient();
+  const [data, setData] = useSectionState("site");
+  if (!data) return null;
+  const d = data;
+  async function save() {
+    const { error } = await supabase.from("site_settings").upsert({ key: "site", data: d as never });
+    if (error) return toast.error(error.message);
+    toast.success("Site info saved");
+    qc.invalidateQueries({ queryKey: ["cms"] });
+  }
+  return (
+    <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
+      <h3 className="font-display text-lg font-bold text-ink">Site info</h3>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Name" value={d.name} onChange={(v) => setData({ ...d, name: v })} />
+        <Field label="Role" value={d.role} onChange={(v) => setData({ ...d, role: v })} />
+        <Field label="Email" value={d.email} onChange={(v) => setData({ ...d, email: v })} />
+        <Field label="WhatsApp" value={d.whatsapp} onChange={(v) => setData({ ...d, whatsapp: v })} />
+        <Field label="Location" value={d.location} onChange={(v) => setData({ ...d, location: v })} />
+        <Field label="Hours" value={d.hours} onChange={(v) => setData({ ...d, hours: v })} />
+      </div>
+      <Field label="Tagline" value={d.tagline} onChange={(v) => setData({ ...d, tagline: v })} textarea />
+      <Button onClick={save}><Save className="h-4 w-4" /> Save site info</Button>
+    </div>
+  );
+}
+
+function BioSectionEditor() {
+  const qc = useQueryClient();
+  const [data, setData] = useSectionState("bio");
+  if (!data) return null;
+  async function save() {
+    const { error } = await supabase.from("site_settings").upsert({ key: "bio", data: data as never });
+    if (error) return toast.error(error.message);
+    toast.success("Bio saved");
+    qc.invalidateQueries({ queryKey: ["cms"] });
+  }
+  return (
+    <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
+      <h3 className="font-display text-lg font-bold text-ink">Bio</h3>
+      <Field label="Title" value={data.title} onChange={(v) => setData({ ...data, title: v })} />
+      <Field label="Body" value={data.body} onChange={(v) => setData({ ...data, body: v })} textarea />
+      <Button onClick={save}><Save className="h-4 w-4" /> Save bio</Button>
+    </div>
+  );
+}
+
+function StatsSectionEditor() {
+  const qc = useQueryClient();
+  const [data, setData] = useSectionState("stats");
+  if (!data) return null;
+  const items = data.items;
+  function update(i: number, patch: Partial<(typeof items)[0]>) {
+    const next = [...items]; next[i] = { ...next[i], ...patch }; setData({ ...data, items: next });
+  }
+  async function save() {
+    const { error } = await supabase.from("site_settings").upsert({ key: "stats", data: data as never });
+    if (error) return toast.error(error.message);
+    toast.success("Stats saved");
+    qc.invalidateQueries({ queryKey: ["cms"] });
+  }
+  return (
+    <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
+      <h3 className="font-display text-lg font-bold text-ink">Stats</h3>
+      {items.map((s, i) => (
+        <div key={i} className="grid gap-2 rounded-xl border border-border p-4 md:grid-cols-3">
+          <Field label="Value" value={s.value} onChange={(v) => update(i, { value: v })} />
+          <Field label="Suffix" value={s.suffix} onChange={(v) => update(i, { suffix: v })} />
+          <Field label="Label" value={s.label} onChange={(v) => update(i, { label: v })} />
+        </div>
+      ))}
+      <Button variant="outline" size="sm" onClick={() => setData({ ...data, items: [...items, { value: "", suffix: "", label: "" }] })}><Plus className="h-4 w-4" /> Add stat</Button>
+      <Button onClick={save}><Save className="h-4 w-4" /> Save stats</Button>
+    </div>
+  );
+}
+
+function ServicesSectionEditor() {
+  const qc = useQueryClient();
+  const [data, setData] = useSectionState("services");
+  if (!data) return null;
+  async function save() {
+    const { error } = await supabase.from("site_settings").upsert({ key: "services", data: data as never });
+    if (error) return toast.error(error.message);
+    toast.success("Services saved");
+    qc.invalidateQueries({ queryKey: ["cms"] });
+  }
+  return (
+    <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
+      <h3 className="font-display text-lg font-bold text-ink">Services</h3>
+      {data.items.map((s, i) => (
+        <div key={i} className="grid gap-2 rounded-xl border border-border p-4 md:grid-cols-2">
+          <Field label="Tag" value={s.tag} onChange={(v) => { const items = [...data.items]; items[i] = { ...s, tag: v }; setData({ ...data, items }); }} />
+          <Field label="Title" value={s.title} onChange={(v) => { const items = [...data.items]; items[i] = { ...s, title: v }; setData({ ...data, items }); }} />
+          <div className="md:col-span-2"><Field label="Description" value={s.desc} onChange={(v) => { const items = [...data.items]; items[i] = { ...s, desc: v }; setData({ ...data, items }); }} textarea /></div>
+        </div>
+      ))}
+      <Button onClick={save}><Save className="h-4 w-4" /> Save services</Button>
+    </div>
+  );
+}
+
+function TestimonialsSectionEditor() {
+  const qc = useQueryClient();
+  const [data, setData] = useSectionState("testimonials");
+  if (!data) return null;
+  async function save() {
+    const { error } = await supabase.from("site_settings").upsert({ key: "testimonials", data: data as never });
+    if (error) return toast.error(error.message);
+    toast.success("Testimonials saved");
+    qc.invalidateQueries({ queryKey: ["cms"] });
+  }
+  return (
+    <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
+      <h3 className="font-display text-lg font-bold text-ink">Testimonials</h3>
+      {data.items.map((t, i) => (
+        <div key={i} className="space-y-2 rounded-xl border border-border p-4">
+          <Field label="Quote" value={t.quote} onChange={(v) => { const items = [...data.items]; items[i] = { ...t, quote: v }; setData({ ...data, items }); }} textarea />
+          <div className="grid gap-2 md:grid-cols-2">
+            <Field label="Name" value={t.name} onChange={(v) => { const items = [...data.items]; items[i] = { ...t, name: v }; setData({ ...data, items }); }} />
+            <Field label="Title" value={t.title} onChange={(v) => { const items = [...data.items]; items[i] = { ...t, title: v }; setData({ ...data, items }); }} />
+          </div>
+        </div>
+      ))}
+      <Button onClick={save}><Save className="h-4 w-4" /> Save testimonials</Button>
+    </div>
+  );
+}
+
+function FaqsSectionEditor() {
+  const qc = useQueryClient();
+  const [data, setData] = useSectionState("faqs");
+  if (!data) return null;
+  async function save() {
+    const { error } = await supabase.from("site_settings").upsert({ key: "faqs", data: data as never });
+    if (error) return toast.error(error.message);
+    toast.success("FAQs saved");
+    qc.invalidateQueries({ queryKey: ["cms"] });
+  }
+  return (
+    <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
+      <h3 className="font-display text-lg font-bold text-ink">FAQs</h3>
+      {data.items.map((f, i) => (
+        <div key={i} className="space-y-2 rounded-xl border border-border p-4">
+          <Field label="Question" value={f.q} onChange={(v) => { const items = [...data.items]; items[i] = { ...f, q: v }; setData({ ...data, items }); }} />
+          <Field label="Answer" value={f.a} onChange={(v) => { const items = [...data.items]; items[i] = { ...f, a: v }; setData({ ...data, items }); }} textarea />
+        </div>
+      ))}
+      <Button variant="outline" size="sm" onClick={() => setData({ ...data, items: [...data.items, { q: "", a: "" }] })}><Plus className="h-4 w-4" /> Add FAQ</Button>
+      <Button onClick={save}><Save className="h-4 w-4" /> Save FAQs</Button>
+    </div>
+  );
+}
+
+function ExperienceSectionEditor() {
+  const qc = useQueryClient();
+  const [data, setData] = useSectionState("experience");
+  if (!data) return null;
+  async function save() {
+    const { error } = await supabase.from("site_settings").upsert({ key: "experience", data: data as never });
+    if (error) return toast.error(error.message);
+    toast.success("Experience saved");
+    qc.invalidateQueries({ queryKey: ["cms"] });
+  }
+  return (
+    <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
+      <h3 className="font-display text-lg font-bold text-ink">Experience</h3>
+      {data.items.map((e, i) => (
+        <div key={i} className="grid gap-2 rounded-xl border border-border p-4 md:grid-cols-3">
+          <Field label="Year" value={e.year} onChange={(v) => { const items = [...data.items]; items[i] = { ...e, year: v }; setData({ ...data, items }); }} />
+          <Field label="Role" value={e.role} onChange={(v) => { const items = [...data.items]; items[i] = { ...e, role: v }; setData({ ...data, items }); }} />
+          <Field label="Organization" value={e.org} onChange={(v) => { const items = [...data.items]; items[i] = { ...e, org: v }; setData({ ...data, items }); }} />
+        </div>
+      ))}
+      <Button onClick={save}><Save className="h-4 w-4" /> Save experience</Button>
+    </div>
+  );
+}
+
+function ProcessSectionEditor() {
+  const qc = useQueryClient();
+  const [data, setData] = useSectionState("process");
+  if (!data) return null;
+  async function save() {
+    const { error } = await supabase.from("site_settings").upsert({ key: "process", data: data as never });
+    if (error) return toast.error(error.message);
+    toast.success("Process saved");
+    qc.invalidateQueries({ queryKey: ["cms"] });
+  }
+  return (
+    <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
+      <h3 className="font-display text-lg font-bold text-ink">Process</h3>
+      {data.items.map((p, i) => (
+        <div key={i} className="space-y-2 rounded-xl border border-border p-4">
+          <div className="grid gap-2 md:grid-cols-2">
+            <Field label="Step" value={p.step} onChange={(v) => { const items = [...data.items]; items[i] = { ...p, step: v }; setData({ ...data, items }); }} />
+            <Field label="Title" value={p.title} onChange={(v) => { const items = [...data.items]; items[i] = { ...p, title: v }; setData({ ...data, items }); }} />
+          </div>
+          <Field label="Body" value={p.body} onChange={(v) => { const items = [...data.items]; items[i] = { ...p, body: v }; setData({ ...data, items }); }} textarea />
+        </div>
+      ))}
+      <Button onClick={save}><Save className="h-4 w-4" /> Save process</Button>
+    </div>
+  );
+}
+
+function AvatarMessagesEditor() {
+  const qc = useQueryClient();
+  const [data, setData] = useSectionState("avatar_messages");
+  if (!data) return null;
+  async function save() {
+    const { error } = await supabase.from("site_settings").upsert({ key: "avatar_messages", data: data as never });
+    if (error) return toast.error(error.message);
+    toast.success("Avatar messages saved");
+    qc.invalidateQueries({ queryKey: ["cms"] });
+  }
+  return (
+    <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
+      <h3 className="font-display text-lg font-bold text-ink">Scroll avatar messages</h3>
+      {data.items.map((msg, i) => (
+        <Field key={i} label={`Message ${i + 1}`} value={msg} onChange={(v) => { const items = [...data.items]; items[i] = v; setData({ ...data, items }); }} />
+      ))}
+      <Button onClick={save}><Save className="h-4 w-4" /> Save messages</Button>
+    </div>
+  );
+}
+
+function SectionCard({ sectionKey }: { sectionKey: "stack" | "industries" }) {
   const qc = useQueryClient();
   const [text, setText] = useState<string>("");
   const [loaded, setLoaded] = useState(false);
@@ -232,7 +482,7 @@ function CaseStudiesManager() {
     queryFn: async () => {
       const { data, error } = await supabase.from("case_studies").select("*").order("sort_order");
       if (error) throw error;
-      return (data ?? []) as unknown as CaseStudyRow[];
+      return (data ?? []).map((row) => normalizeCaseStudy(row as Record<string, unknown>));
     },
   });
   const [editing, setEditing] = useState<EditableCase | null>(null);
@@ -273,7 +523,11 @@ function CaseStudiesManager() {
               <p className="text-xs text-body-light">/{c.slug} · {c.industry ?? "—"} · {c.published ? "Published" : "Draft"}</p>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setEditing({ ...c, platforms_text: c.platforms.join(", "), tags_text: c.tags.join(", ") })}>Edit</Button>
+              <Button size="sm" variant="outline" onClick={() => setEditing({
+                ...normalizeCaseStudy(c as Record<string, unknown>),
+                platforms_text: c.platforms.join(", "),
+                tags_text: c.tags.join(", "),
+              })}>Edit</Button>
               <Button size="sm" variant="destructive" onClick={() => del(c.id!)}><Trash2 className="h-3 w-3" /></Button>
             </div>
           </div>
@@ -284,14 +538,52 @@ function CaseStudiesManager() {
   );
 }
 
+function KpiEditor({ items, onChange }: { items: ResultKPI[]; onChange: (v: ResultKPI[]) => void }) {
+  return (
+    <div className="space-y-3">
+      <Label>Results / KPIs</Label>
+      {items.map((kpi, i) => (
+        <div key={i} className="grid gap-2 rounded-xl border border-border p-3 sm:grid-cols-[1fr_1fr_auto]">
+          <Input placeholder="Label (e.g. ROAS)" value={kpi.label} onChange={(e) => {
+            const next = [...items]; next[i] = { ...kpi, label: e.target.value }; onChange(next);
+          }} />
+          <Input placeholder="Value (e.g. 4.1x)" value={kpi.value} onChange={(e) => {
+            const next = [...items]; next[i] = { ...kpi, value: e.target.value }; onChange(next);
+          }} />
+          <Button type="button" size="sm" variant="destructive" onClick={() => onChange(items.filter((_, x) => x !== i))}>
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      ))}
+      <Button type="button" variant="outline" size="sm" onClick={() => onChange([...items, { label: "", value: "" }])}>
+        <Plus className="h-4 w-4" /> Add KPI
+      </Button>
+    </div>
+  );
+}
+
+function AspectSelect({ value, onChange }: { value: MediaAspect; onChange: (v: MediaAspect) => void }) {
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v as MediaAspect)}>
+      <SelectTrigger className="w-full"><SelectValue placeholder="Aspect ratio" /></SelectTrigger>
+      <SelectContent>
+        {MEDIA_ASPECT_OPTIONS.map((o) => (
+          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function CaseEditor({ value, onCancel, onSaved }: { value: EditableCase; onCancel: () => void; onSaved: () => void }) {
-  const [f, setF] = useState<EditableCase>(value);
+  const [f, setF] = useState<EditableCase>({ ...value, results: value.results ?? [] });
 
   function up<K extends keyof EditableCase>(k: K, v: EditableCase[K]) { setF({ ...f, [k]: v }); }
 
   async function save() {
+    const slug = slugify(f.slug || f.title || "");
     const payload = {
-      slug: (f.slug || "").trim(),
+      slug,
       title: (f.title || "").trim(),
       industry: f.industry || null,
       client: f.client || null,
@@ -326,11 +618,11 @@ function CaseEditor({ value, onCancel, onSaved }: { value: EditableCase; onCance
     catch (e) { toast.error(e instanceof Error ? e.message : "Upload failed"); }
   }
 
-  async function addCreative(file: File) {
+  async function addCreative(file: File, aspect: MediaAspect) {
     try {
       const url = await uploadMedia(file, "cases/creatives");
       const type: "image" | "video" = file.type.startsWith("video") ? "video" : "image";
-      up("ad_creatives", [...(f.ad_creatives ?? []), { url, type, caption: "" }]);
+      up("ad_creatives", [...(f.ad_creatives ?? []), { url, type, caption: "", aspect }]);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Upload failed"); }
   }
 
@@ -341,9 +633,11 @@ function CaseEditor({ value, onCancel, onSaved }: { value: EditableCase; onCance
     } catch (e) { toast.error(e instanceof Error ? e.message : "Upload failed"); }
   }
 
+  const [newCreativeAspect, setNewCreativeAspect] = useState<MediaAspect>("auto");
+
   return (
-    <div className="rounded-2xl border border-border bg-white p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="rounded-2xl border border-border bg-white p-4 md:p-6 space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="font-display text-2xl font-bold text-ink">{f.id ? "Edit" : "New"} case study</h2>
         <div className="flex gap-2">
           <Button variant="outline" onClick={onCancel}>Cancel</Button>
@@ -352,7 +646,7 @@ function CaseEditor({ value, onCancel, onSaved }: { value: EditableCase; onCance
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Slug (URL)" value={f.slug || ""} onChange={(v) => up("slug", v)} />
+        <Field label="Slug (URL)" value={f.slug || ""} onChange={(v) => up("slug", slugify(v))} />
         <Field label="Title" value={f.title || ""} onChange={(v) => up("title", v)} />
         <Field label="Industry" value={f.industry || ""} onChange={(v) => up("industry", v)} />
         <Field label="Client" value={f.client || ""} onChange={(v) => up("client", v)} />
@@ -371,11 +665,7 @@ function CaseEditor({ value, onCancel, onSaved }: { value: EditableCase; onCance
         <Field label="Outcome" value={f.outcome || ""} onChange={(v) => up("outcome", v)} textarea />
       </div>
 
-      <div>
-        <Label>Results / KPIs (JSON: [{"{"}label, value{"}"}, ...])</Label>
-        <Textarea rows={5} className="font-mono text-xs" value={JSON.stringify(f.results ?? [], null, 2)}
-          onChange={(e) => { try { up("results", JSON.parse(e.target.value)); } catch { /* ignore */ } }} />
-      </div>
+      <KpiEditor items={f.results ?? []} onChange={(v) => up("results", v)} />
 
       <div>
         <Label>Cover image</Label>
@@ -385,16 +675,28 @@ function CaseEditor({ value, onCancel, onSaved }: { value: EditableCase; onCance
       <div>
         <Label>Funnel HTML embed</Label>
         <Textarea rows={6} className="font-mono text-xs" value={f.funnel_html || ""} onChange={(e) => up("funnel_html", e.target.value)} placeholder="<iframe src='...'></iframe> or full HTML" />
+        {f.funnel_html && (
+          <div className="mt-4 rounded-xl border border-border bg-secondary/30 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-body-light">Live preview</p>
+            <div className="funnel-embed overflow-auto rounded-lg bg-white p-2" dangerouslySetInnerHTML={{ __html: f.funnel_html }} />
+          </div>
+        )}
       </div>
 
       <div>
         <Label>Ad creatives (images + videos)</Label>
-        <div className="mt-2 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+        <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(f.ad_creatives ?? []).map((m, i) => (
             <div key={i} className="rounded-xl border border-border p-3">
-              {m.type === "video"
-                ? <video src={m.url} controls className="aspect-[9/16] w-full bg-black rounded-md" />
-                : <img src={m.url} alt="" className="aspect-[4/5] w-full rounded-md object-cover" />}
+              <div className="mb-2 flex items-center justify-center bg-secondary/40 rounded-md overflow-hidden">
+                {m.type === "video"
+                  ? <video src={m.url} controls className={m.aspect === "auto" ? "w-full max-h-64" : `w-full ${m.aspect === "16:9" ? "aspect-video" : m.aspect === "1:1" ? "aspect-square" : m.aspect === "9:16" ? "aspect-[9/16]" : m.aspect === "3:4" ? "aspect-[3/4]" : "aspect-[4/5]"} object-cover`} />
+                  : <img src={m.url} alt="" className={m.aspect === "auto" ? "w-full h-auto max-h-64 object-contain" : `w-full ${m.aspect === "16:9" ? "aspect-video" : m.aspect === "1:1" ? "aspect-square" : m.aspect === "9:16" ? "aspect-[9/16]" : m.aspect === "3:4" ? "aspect-[3/4]" : "aspect-[4/5]"} object-cover`} />}
+              </div>
+              <Label className="text-xs">Format</Label>
+              <AspectSelect value={m.aspect ?? "auto"} onChange={(aspect) => {
+                const next = [...(f.ad_creatives ?? [])]; next[i] = { ...m, aspect }; up("ad_creatives", next);
+              }} />
               <Input className="mt-2" placeholder="Caption" value={m.caption ?? ""} onChange={(e) => {
                 const next = [...(f.ad_creatives ?? [])]; next[i] = { ...m, caption: e.target.value }; up("ad_creatives", next);
               }} />
@@ -402,10 +704,16 @@ function CaseEditor({ value, onCancel, onSaved }: { value: EditableCase; onCance
             </div>
           ))}
         </div>
-        <label className="mt-3 inline-flex cursor-pointer items-center gap-2 text-sm text-primary hover:underline">
-          <Upload className="h-4 w-4" /> Upload creative (image or mp4)
-          <input type="file" accept="image/*,video/mp4" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) addCreative(file); e.target.value = ""; }} />
-        </label>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <Label className="text-xs">Default format for new upload</Label>
+            <AspectSelect value={newCreativeAspect} onChange={setNewCreativeAspect} />
+          </div>
+          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border px-4 py-2 text-sm text-primary hover:bg-secondary">
+            <Upload className="h-4 w-4" /> Upload creative
+            <input type="file" accept="image/*,video/mp4" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) addCreative(file, newCreativeAspect); e.target.value = ""; }} />
+          </label>
+        </div>
       </div>
 
       <div>
@@ -427,7 +735,7 @@ function CaseEditor({ value, onCancel, onSaved }: { value: EditableCase; onCance
         </label>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Switch checked={f.published ?? true} onCheckedChange={(v) => up("published", v)} />
         <span className="text-sm text-ink">{f.published ? "Published (visible on site)" : "Draft (hidden)"}</span>
       </div>

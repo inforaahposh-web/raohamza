@@ -3,7 +3,7 @@ import { ArrowUpRight, Sparkles, CheckCircle2, ChevronDown } from "lucide-react"
 import { useState } from "react";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal, Counter } from "@/components/site/Reveal";
-import { useSection } from "@/lib/cms";
+import { useSection, useCaseStudies } from "@/lib/cms";
 import heroPortrait from "@/assets/hero-portrait.jpg";
 
 export const Route = createFileRoute("/")({
@@ -18,7 +18,7 @@ function Home() {
       <StatsSection />
       <ServicesSection />
       <StackSection />
-      <IndustriesSection />
+      <CaseStudiesSection />
       <TestimonialsSection />
       <FaqSection />
       <CtaSection />
@@ -239,15 +239,19 @@ function StackSection() {
   );
 }
 
-function IndustriesSection() {
-  const { data } = useSection("industries");
-  if (!data) return null;
+function CaseStudiesSection() {
+  const { data: cases, isLoading } = useCaseStudies();
+  const published = (cases ?? []).filter((c) => c.published);
+
+  if (isLoading) return null;
+  if (published.length === 0) return null;
+
   return (
     <section className="container-x py-20 md:py-28">
       <div className="mb-12 flex flex-col items-start justify-between gap-6 md:mb-16 md:flex-row md:items-end">
         <Reveal>
           <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-primary">Verticals I've actually run</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-primary">Case studies</p>
             <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-ink md:text-6xl">
               Real <span className="italic-purple">accounts</span>, real numbers.
             </h2>
@@ -259,30 +263,37 @@ function IndustriesSection() {
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {data.items.map((ind, i) => (
-          <Reveal key={ind.slug} delay={i * 40}>
+        {published.slice(0, 6).map((cs, i) => (
+          <Reveal key={cs.id} delay={i * 40}>
             <Link
               to="/case-studies/$slug"
-              params={{ slug: ind.slug }}
-              className="card-premium group flex h-full flex-col justify-between p-7"
+              params={{ slug: cs.slug }}
+              className="card-premium group flex h-full flex-col justify-between overflow-hidden p-0"
             >
-              <div>
-                <div className="flex items-center gap-3">
-                  <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary-soft font-display font-bold text-primary">
-                    {ind.name.charAt(0)}
-                  </span>
-                  <h3 className="font-display text-xl font-bold text-ink">{ind.name}</h3>
+              {cs.cover_image_url && (
+                <div className="aspect-[16/9] w-full overflow-hidden bg-secondary">
+                  <img src={cs.cover_image_url} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 </div>
-                <p className="mt-5 text-body">{ind.short}</p>
-              </div>
-              <div className="mt-8 flex items-end justify-between border-t border-border pt-5">
+              )}
+              <div className="flex flex-1 flex-col justify-between p-7">
                 <div>
-                  <p className="font-display text-3xl font-bold text-ink">{ind.metric}</p>
-                  <p className="text-xs text-body-light">{ind.metricLabel}</p>
+                  <div className="flex items-center gap-3">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary-soft font-display font-bold text-primary">
+                      {(cs.industry ?? cs.title).charAt(0)}
+                    </span>
+                    <h3 className="font-display text-xl font-bold text-ink line-clamp-2">{cs.title}</h3>
+                  </div>
+                  {cs.summary && <p className="mt-4 text-body line-clamp-3">{cs.summary}</p>}
                 </div>
-                <span className="inline-flex items-center gap-1 rounded-full bg-ink px-4 py-2 text-xs font-semibold text-white transition-all group-hover:bg-primary">
-                  Case study <ArrowUpRight className="h-3.5 w-3.5" />
-                </span>
+                <div className="mt-8 flex items-end justify-between border-t border-border pt-5">
+                  <div>
+                    <p className="font-display text-2xl font-bold text-ink md:text-3xl">{cs.results[0]?.value ?? "—"}</p>
+                    <p className="text-xs text-body-light">{cs.results[0]?.label ?? cs.industry ?? ""}</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-ink px-4 py-2 text-xs font-semibold text-white transition-all group-hover:bg-primary">
+                    Case study <ArrowUpRight className="h-3.5 w-3.5" />
+                  </span>
+                </div>
               </div>
             </Link>
           </Reveal>

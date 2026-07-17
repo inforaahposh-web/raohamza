@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal } from "@/components/site/Reveal";
-import { useCaseStudies, useSection } from "@/lib/cms";
+import { useCaseStudies } from "@/lib/cms";
 
 export const Route = createFileRoute("/case-studies")({
   component: CaseStudiesIndex,
@@ -17,10 +17,8 @@ export const Route = createFileRoute("/case-studies")({
 });
 
 function CaseStudiesIndex() {
-  const { data: cases } = useCaseStudies();
-  const { data: industries } = useSection("industries");
+  const { data: cases, isLoading } = useCaseStudies();
   const published = (cases ?? []).filter((c) => c.published);
-  const indBySlug = new Map((industries?.items ?? []).map((i) => [i.slug, i]));
 
   return (
     <SiteLayout>
@@ -35,10 +33,17 @@ function CaseStudiesIndex() {
       </section>
 
       <section className="container-x pb-24">
-        <div className="grid gap-5 md:grid-cols-2">
-          {published.map((cs, i) => {
-            const ind = indBySlug.get(cs.slug);
-            return (
+        {isLoading ? (
+          <p className="text-body">Loading case studies…</p>
+        ) : published.length === 0 ? (
+          <div className="rounded-[22px] border border-border bg-white p-10 text-center">
+            <p className="font-display text-2xl font-bold text-ink">Case studies coming soon</p>
+            <p className="mt-3 text-body">New work is being added. Check back shortly or get in touch.</p>
+            <Link to="/contact" className="btn-primary mt-6 inline-flex">Contact me</Link>
+          </div>
+        ) : (
+          <div className="grid gap-5 md:grid-cols-2">
+            {published.map((cs, i) => (
               <Reveal key={cs.id} delay={i * 40}>
                 <Link
                   to="/case-studies/$slug"
@@ -51,27 +56,31 @@ function CaseStudiesIndex() {
                     </div>
                   )}
                   <div className="p-7 md:p-10">
-                    <div className="flex items-center justify-between">
-                      <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">{cs.industry ?? ind?.name}</span>
-                      <ArrowUpRight className="h-5 w-5 text-body-light transition-all group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary" />
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">{cs.industry ?? "Case study"}</span>
+                      <ArrowUpRight className="h-5 w-5 shrink-0 text-body-light transition-all group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary" />
                     </div>
                     <h2 className="mt-6 font-display text-2xl font-bold leading-snug text-ink md:text-3xl">
                       {cs.title}
                     </h2>
                     {cs.summary && <p className="mt-4 text-body">{cs.summary}</p>}
-                    <div className="mt-8 flex items-end justify-between border-t border-border pt-5">
-                      <div>
-                        <p className="font-display text-3xl font-bold text-ink">{cs.results[0]?.value ?? "—"}</p>
-                        <p className="text-xs text-body-light">{cs.results[0]?.label ?? ""}</p>
+                    {cs.results.length > 0 && (
+                      <div className="mt-8 flex flex-wrap gap-6 border-t border-border pt-5">
+                        {cs.results.slice(0, 3).map((r, idx) => (
+                          <div key={`${r.label}-${idx}`}>
+                            <p className="font-display text-2xl font-bold text-ink md:text-3xl">{r.value}</p>
+                            <p className="text-xs text-body-light">{r.label}</p>
+                          </div>
+                        ))}
                       </div>
-                      <span className="text-sm font-medium text-primary">Read study →</span>
-                    </div>
+                    )}
+                    <p className="mt-6 text-sm font-medium text-primary">Read study →</p>
                   </div>
                 </Link>
               </Reveal>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </SiteLayout>
   );

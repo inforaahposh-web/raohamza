@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal } from "@/components/site/Reveal";
-import { useCaseStudy } from "@/lib/cms";
+import { useCaseStudy, mediaAspectClass } from "@/lib/cms";
 
 export const Route = createFileRoute("/case-studies/$slug")({
   component: CaseStudyPage,
@@ -92,8 +92,8 @@ function CaseStudyPage() {
             <div className="mt-20">
               <p className="text-sm font-semibold uppercase tracking-widest text-primary">Funnel preview</p>
               <h2 className="mt-3 font-display text-3xl font-bold text-ink md:text-5xl">The live <span className="italic-purple">funnel</span>.</h2>
-              <div className="mt-8 overflow-hidden rounded-[22px] border border-border bg-white">
-                <div className="funnel-embed" dangerouslySetInnerHTML={{ __html: cs.funnel_html }} />
+              <div className="mt-8 overflow-hidden rounded-[22px] border border-border bg-white p-2 md:p-4">
+                <div className="funnel-embed w-full overflow-auto" dangerouslySetInnerHTML={{ __html: cs.funnel_html }} />
               </div>
             </div>
           </Reveal>
@@ -104,14 +104,16 @@ function CaseStudyPage() {
             <div className="mt-20">
               <p className="text-sm font-semibold uppercase tracking-widest text-primary">Ad creatives</p>
               <h2 className="mt-3 font-display text-3xl font-bold text-ink md:text-5xl">The <span className="italic-purple">assets</span> that ran.</h2>
-              <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+              <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {cs.ad_creatives.map((m, idx) => (
                   <figure key={`${m.url}-${idx}`} className="overflow-hidden rounded-[18px] border border-border bg-white">
-                    {m.type === "video" ? (
-                      <video src={m.url} controls className="aspect-[9/16] w-full bg-black object-cover" />
-                    ) : (
-                      <img src={m.url} alt={m.caption ?? ""} className="aspect-[4/5] w-full object-cover" />
-                    )}
+                    <div className="flex items-center justify-center bg-secondary/50">
+                      {m.type === "video" ? (
+                        <video src={m.url} controls className={mediaAspectClass(m.aspect, "video")} />
+                      ) : (
+                        <img src={m.url} alt={m.caption ?? ""} className={mediaAspectClass(m.aspect, "image")} />
+                      )}
+                    </div>
                     {m.caption && <figcaption className="px-4 py-3 text-sm text-body">{m.caption}</figcaption>}
                   </figure>
                 ))}

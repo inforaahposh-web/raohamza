@@ -23,9 +23,78 @@ export type FaqItem = { q: string; a: string };
 export type ExperienceItem = { year: string; role: string; org: string };
 export type ProcessItem = { step: string; title: string; body: string };
 
-export type MediaItem = { url: string; type: "image" | "video"; caption?: string };
+export type MediaAspect = "auto" | "1:1" | "4:5" | "9:16" | "16:9" | "3:4";
+export type MediaItem = { url: string; type: "image" | "video"; caption?: string; aspect?: MediaAspect };
 export type StatImage = { url: string; caption?: string };
 export type ResultKPI = { label: string; value: string };
+
+export const MEDIA_ASPECT_OPTIONS: { value: MediaAspect; label: string }[] = [
+  { value: "auto", label: "Original (auto)" },
+  { value: "1:1", label: "Square 1:1" },
+  { value: "4:5", label: "Portrait 4:5" },
+  { value: "3:4", label: "Portrait 3:4" },
+  { value: "9:16", label: "Story 9:16" },
+  { value: "16:9", label: "Landscape 16:9" },
+];
+
+export function mediaAspectClass(aspect?: MediaAspect, type: "image" | "video" = "image"): string {
+  const base = type === "video" ? "w-full bg-black" : "w-full";
+  switch (aspect) {
+    case "1:1": return `${base} aspect-square object-cover`;
+    case "4:5": return `${base} aspect-[4/5] object-cover`;
+    case "3:4": return `${base} aspect-[3/4] object-cover`;
+    case "9:16": return `${base} aspect-[9/16] object-cover`;
+    case "16:9": return `${base} aspect-video object-cover`;
+    default: return `${base} h-auto max-h-[85vh] object-contain`;
+  }
+}
+
+function parseJsonField<T>(val: unknown, fallback: T): T {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === "string") {
+    try { return JSON.parse(val) as T; } catch { return fallback; }
+  }
+  return val as T;
+}
+
+export function normalizeCaseStudy(row: Record<string, unknown>): CaseStudyRow {
+  const results = parseJsonField<ResultKPI[]>(row.results, []);
+  const adCreatives = parseJsonField<MediaItem[]>(row.ad_creatives, []).map((m) => ({
+    ...m,
+    aspect: m.aspect ?? "auto",
+  }));
+  const statImages = parseJsonField<StatImage[]>(row.campaign_stat_images, []);
+  const platforms = Array.isArray(row.platforms) ? row.platforms as string[] : parseJsonField<string[]>(row.platforms, []);
+  const tags = Array.isArray(row.tags) ? row.tags as string[] : parseJsonField<string[]>(row.tags, []);
+
+  return {
+    id: String(row.id ?? ""),
+    slug: String(row.slug ?? ""),
+    title: String(row.title ?? ""),
+    industry: row.industry ? String(row.industry) : null,
+    client: row.client ? String(row.client) : null,
+    country: row.country ? String(row.country) : null,
+    duration: row.duration ? String(row.duration) : null,
+    platforms,
+    summary: row.summary ? String(row.summary) : null,
+    tags,
+    results: Array.isArray(results) ? results : [],
+    challenge: row.challenge ? String(row.challenge) : null,
+    goal: row.goal ? String(row.goal) : null,
+    strategy: row.strategy ? String(row.strategy) : null,
+    outcome: row.outcome ? String(row.outcome) : null,
+    funnel_html: row.funnel_html ? String(row.funnel_html) : null,
+    ad_creatives: adCreatives,
+    campaign_stat_images: statImages,
+    cover_image_url: row.cover_image_url ? String(row.cover_image_url) : null,
+    sort_order: Number(row.sort_order ?? 0),
+    published: row.published !== false,
+  };
+}
+
+export function slugify(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
 
 export type CaseStudyRow = {
   id: string;
@@ -105,29 +174,37 @@ export const DEFAULTS: SectionMap = {
   avatar_messages: { items: D.avatar_messages },
 };
 
-const DEFAULT_CASE_STUDIES: CaseStudyRow[] = defaults.caseStudies.map((cs, i) => ({
-  id: cs.slug,
-  slug: cs.slug,
-  title: cs.title,
-  industry: cs.industry,
-  client: cs.client,
-  country: cs.country,
-  duration: cs.duration,
-  platforms: cs.platforms,
-  summary: cs.summary,
-  tags: cs.tags,
-  results: cs.results,
-  challenge: cs.challenge,
-  goal: cs.goal,
-  strategy: cs.strategy,
-  outcome: cs.outcome,
-  funnel_html: null,
-  ad_creatives: [],
-  campaign_stat_images: [],
-  cover_image_url: null,
-  sort_order: i + 1,
-  published: true,
-}));
+async function fetchCaseStudies(): Promise<CaseStudyRow[]> {
+  try {
+    const { data, error } = await supabase
+      .from("case_studies")
+      .select("*")
+      .order("sort_order", { ascending: true });
+    if (error) {
+      console.warn("[cms] case_studies:", error.message);
+      return [];
+    }
+    return (data ?? []).map((row) => normalizeCaseStudy(row as Record<string, unknown>));
+  } catch (e) {
+    console.warn("[cms] case_studies:", e);
+    return [];
+  }
+}
+
+async function fetchCaseStudyBySlug(slug: string): Promise<CaseStudyRow | null> {
+  try {
+    const { data, error } = await supabase.from("case_studies").select("*").eq("slug", slug).maybeSingle();
+    if (error) {
+      console.warn(`[cms] case_study/${slug}:`, error.message);
+      return null;
+    }
+    if (!data) return null;
+    return normalizeCaseStudy(data as Record<string, unknown>);
+  } catch (e) {
+    console.warn(`[cms] case_study/${slug}:`, e);
+    return null;
+  }
+}
 
 async function fetchSection<K extends keyof SectionMap>(key: K): Promise<SectionMap[K]> {
   try {
@@ -157,46 +234,15 @@ export function useSection<K extends keyof SectionMap>(key: K) {
 export function useCaseStudies() {
   return useQuery({
     queryKey: ["cms", "case_studies"],
-    queryFn: async (): Promise<CaseStudyRow[]> => {
-      try {
-        const { data, error } = await supabase
-          .from("case_studies")
-          .select("*")
-          .order("sort_order", { ascending: true });
-        if (error) {
-          console.warn("[cms] case_studies:", error.message);
-          return DEFAULT_CASE_STUDIES;
-        }
-        if (!data?.length) return DEFAULT_CASE_STUDIES;
-        return (data ?? []) as unknown as CaseStudyRow[];
-      } catch (e) {
-        console.warn("[cms] case_studies:", e);
-        return DEFAULT_CASE_STUDIES;
-      }
-    },
-    initialData: DEFAULT_CASE_STUDIES,
+    queryFn: fetchCaseStudies,
     staleTime: 30_000,
   });
 }
 
 export function useCaseStudy(slug: string) {
-  const fallback = DEFAULT_CASE_STUDIES.find((c) => c.slug === slug) ?? null;
   return useQuery({
     queryKey: ["cms", "case_study", slug],
-    queryFn: async (): Promise<CaseStudyRow | null> => {
-      try {
-        const { data, error } = await supabase.from("case_studies").select("*").eq("slug", slug).maybeSingle();
-        if (error) {
-          console.warn(`[cms] case_study/${slug}:`, error.message);
-          return fallback;
-        }
-        return (data ?? fallback) as unknown as CaseStudyRow | null;
-      } catch (e) {
-        console.warn(`[cms] case_study/${slug}:`, e);
-        return fallback;
-      }
-    },
-    initialData: fallback ?? undefined,
+    queryFn: () => fetchCaseStudyBySlug(slug),
     staleTime: 30_000,
   });
 }
