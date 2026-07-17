@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsAdmin, uploadMedia, DEFAULTS, normalizeCaseStudy, slugify, MEDIA_ASPECT_OPTIONS, type CaseStudyRow, type MediaAspect, type ResultKPI, type MediaItem } from "@/lib/cms";
+import { useIsAdmin, uploadMedia, DEFAULTS, normalizeCaseStudy, slugify, MEDIA_ASPECT_OPTIONS, upsertSiteSection, type CaseStudyRow, type MediaAspect, type ResultKPI, type MediaItem } from "@/lib/cms";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,21 +105,36 @@ function HeroImagesEditor() {
   useEffect(() => { if (row) setState(row); }, [row]);
   if (!state) return null;
 
-  async function save() {
-    const { error } = await supabase.from("site_settings").upsert({ key: "hero", data: state as never });
-    if (error) return toast.error(error.message);
-    toast.success("Saved");
-    qc.invalidateQueries();
+  async function saveHero(next?: typeof DEFAULTS.hero, silent = false) {
+    const payload = next ?? state!;
+    try {
+      await upsertSiteSection("hero", payload);
+      setState(payload);
+      if (!silent) toast.success("Hero saved");
+      qc.invalidateQueries({ queryKey: ["cms"] });
+      qc.invalidateQueries({ queryKey: ["admin", "section", "hero"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    }
   }
 
   async function pick(field: "image_url" | "avatar_url", file: File) {
     try {
       const url = await uploadMedia(file, field === "avatar_url" ? "avatar" : "hero");
-      setState({ ...state!, [field]: url });
-      toast.success("Uploaded — click Save");
+      const next = { ...state!, [field]: url };
+      setState(next);
+      await saveHero(next, true);
+      toast.success(field === "image_url" ? "Hero photo saved" : "Avatar saved");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     }
+  }
+
+  async function clearImage(field: "image_url" | "avatar_url") {
+    const next = { ...state!, [field]: null };
+    setState(next);
+    await saveHero(next, true);
+    toast.success("Photo removed — section hidden on site");
   }
 
   return (
@@ -127,8 +142,8 @@ function HeroImagesEditor() {
       <h2 className="font-display text-2xl font-bold text-ink">Hero content & images</h2>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <ImagePickerRow label="Homepage hero photo" url={state.image_url} onPick={(f) => pick("image_url", f)} onClear={() => setState({ ...state, image_url: null })} />
-        <ImagePickerRow label="Scroll avatar (PNG cutout — transparent background)" url={state.avatar_url} onPick={(f) => pick("avatar_url", f)} onClear={() => setState({ ...state, avatar_url: null })} />
+        <ImagePickerRow label="Homepage hero photo" url={state.image_url} portrait onPick={(f) => pick("image_url", f)} onClear={() => clearImage("image_url")} />
+        <ImagePickerRow label="Scroll avatar (PNG cutout — transparent background)" url={state.avatar_url} onPick={(f) => pick("avatar_url", f)} onClear={() => clearImage("avatar_url")} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -139,7 +154,7 @@ function HeroImagesEditor() {
         <Field label="Heading — tail" value={state.headingTail} onChange={(v) => setState({ ...state, headingTail: v })} textarea />
       </div>
 
-      <Button onClick={save}><Save className="h-4 w-4" /> Save hero</Button>
+      <Button onClick={() => saveHero()}><Save className="h-4 w-4" /> Save hero text</Button>
     </div>
   );
 }
@@ -156,22 +171,27 @@ function Field({ label, value, onChange, textarea, hint }: { label: string; valu
   );
 }
 
-function ImagePickerRow({ label, url, onPick, onClear }: { label: string; url: string | null; onPick: (f: File) => void; onClear: () => void }) {
+function ImagePickerRow({ label, url, onPick, onClear, portrait }: { label: string; url: string | null; onPick: (f: File) => void; onClear: () => void; portrait?: boolean }) {
   return (
     <div className="rounded-xl border border-border p-4">
       <p className="text-sm font-semibold text-ink mb-3">{label}</p>
       {url ? (
         <div className="relative">
-          <img src={url} alt="" className="h-40 w-full rounded-lg object-cover" />
+          <img
+            src={url}
+            alt=""
+            className={`w-full rounded-lg bg-secondary ${portrait ? "h-56 object-contain object-top" : "h-40 object-cover object-center"}`}
+          />
           <Button size="sm" variant="destructive" className="absolute top-2 right-2" onClick={onClear}><Trash2 className="h-3 w-3" /></Button>
         </div>
       ) : (
-        <div className="grid place-items-center h-40 rounded-lg bg-secondary text-body-light text-sm">Using default</div>
+        <div className="grid place-items-center h-56 rounded-lg bg-secondary text-body-light text-sm text-center px-4">No photo — hero image hidden on site</div>
       )}
       <label className="mt-3 inline-flex cursor-pointer items-center gap-2 text-sm text-primary hover:underline">
-        <Upload className="h-4 w-4" /> Upload
-        <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f); }} />
+        <Upload className="h-4 w-4" /> Upload new
+        <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f); e.target.value = ""; }} />
       </label>
+      {portrait && <p className="mt-2 text-xs text-body-light">Tip: use a portrait photo (3:4). Saves automatically after upload.</p>}
     </div>
   );
 }

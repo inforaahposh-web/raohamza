@@ -4,7 +4,6 @@ import { useState } from "react";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal, Counter } from "@/components/site/Reveal";
 import { useSection, useCaseStudies, cleanSlug } from "@/lib/cms";
-import heroPortrait from "@/assets/hero-portrait.jpg";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -32,7 +31,7 @@ function HeroSection() {
   const { data: stats } = useSection("stats");
   if (!hero || !site) return null;
 
-  const heroImage = hero.image_url || heroPortrait;
+  const hasHeroImage = Boolean(hero.image_url);
   const topStat = stats?.items[0];
   const roasStat = stats?.items[2];
 
@@ -42,7 +41,7 @@ function HeroSection() {
       <div className="pointer-events-none absolute -top-24 -left-24 h-[420px] w-[420px] rounded-full bg-primary/25 blur-3xl animate-blob" aria-hidden />
       <div className="pointer-events-none absolute top-40 -right-24 h-[380px] w-[380px] rounded-full bg-[#8b5cf6]/20 blur-3xl animate-blob" style={{ animationDelay: "3s" }} aria-hidden />
 
-      <div className="container-x relative grid gap-10 py-16 md:grid-cols-[1.35fr_1fr] md:gap-16 md:py-28">
+      <div className={`container-x relative grid gap-10 py-16 md:gap-16 md:py-28 ${hasHeroImage ? "md:grid-cols-[1.35fr_1fr]" : ""}`}>
         <div className="flex flex-col justify-center">
           <Reveal>
             <span className="inline-flex items-center gap-2 rounded-full border border-border bg-white/70 px-4 py-1.5 text-xs font-medium text-ink-soft shadow-soft backdrop-blur">
@@ -91,33 +90,35 @@ function HeroSection() {
           </Reveal>
         </div>
 
-        <Reveal delay={200} className="relative">
-          <div className="relative mx-auto aspect-[3/4] w-full max-w-md">
-            <div className="absolute -inset-4 rounded-[36px] bg-gradient-to-br from-primary/40 via-transparent to-[#8b5cf6]/30 blur-2xl" aria-hidden />
-            <div className="relative h-full w-full overflow-hidden rounded-[28px] border border-border bg-white shadow-large">
-              <img src={heroImage} alt={`${site.name} portrait`} className="h-full w-full object-cover" />
-              <div className="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur">
-                <div>
-                  <p className="font-display text-sm font-bold text-ink">{site.name}</p>
-                  <p className="text-xs text-body-light">{site.role}</p>
+        {hasHeroImage && (
+          <Reveal delay={200} className="relative">
+            <div className="relative mx-auto aspect-[3/4] w-full max-w-md">
+              <div className="absolute -inset-4 rounded-[36px] bg-gradient-to-br from-primary/40 via-transparent to-[#8b5cf6]/30 blur-2xl" aria-hidden />
+              <div className="relative h-full w-full overflow-hidden rounded-[28px] border border-border bg-white shadow-large">
+                <img src={hero.image_url!} alt={`${site.name} portrait`} className="h-full w-full object-cover object-top" />
+                <div className="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur">
+                  <div>
+                    <p className="font-display text-sm font-bold text-ink">{site.name}</p>
+                    <p className="text-xs text-body-light">{site.role}</p>
+                  </div>
+                  <Sparkles className="h-5 w-5 text-primary" />
                 </div>
-                <Sparkles className="h-5 w-5 text-primary" />
               </div>
+              {topStat && (
+                <div className="absolute -left-6 top-8 rounded-2xl bg-dark-bg px-4 py-3 text-white shadow-large">
+                  <p className="font-display text-2xl font-bold leading-none">${topStat.value}{topStat.suffix}</p>
+                  <p className="mt-1 text-xs text-white/60">{topStat.label.toLowerCase()}</p>
+                </div>
+              )}
+              {roasStat && (
+                <div className="absolute -right-4 bottom-24 rounded-2xl bg-primary px-4 py-3 text-white shadow-glow">
+                  <p className="font-display text-2xl font-bold leading-none">{roasStat.value}{roasStat.suffix}</p>
+                  <p className="mt-1 text-xs text-white/80">{roasStat.label.toLowerCase()}</p>
+                </div>
+              )}
             </div>
-            {topStat && (
-              <div className="absolute -left-6 top-8 rounded-2xl bg-dark-bg px-4 py-3 text-white shadow-large">
-                <p className="font-display text-2xl font-bold leading-none">${topStat.value}{topStat.suffix}</p>
-                <p className="mt-1 text-xs text-white/60">{topStat.label.toLowerCase()}</p>
-              </div>
-            )}
-            {roasStat && (
-              <div className="absolute -right-4 bottom-24 rounded-2xl bg-primary px-4 py-3 text-white shadow-glow">
-                <p className="font-display text-2xl font-bold leading-none">{roasStat.value}{roasStat.suffix}</p>
-                <p className="mt-1 text-xs text-white/80">{roasStat.label.toLowerCase()}</p>
-              </div>
-            )}
-          </div>
-        </Reveal>
+          </Reveal>
+        )}
       </div>
     </section>
   );

@@ -3,7 +3,6 @@ import { ArrowUpRight } from "lucide-react";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal } from "@/components/site/Reveal";
 import { useSection } from "@/lib/cms";
-import heroPortrait from "@/assets/hero-portrait.jpg";
 
 export const Route = createFileRoute("/about")({
   component: AboutPage,
@@ -23,12 +22,12 @@ function AboutPage() {
   const { data: exp } = useSection("experience");
   const { data: proc } = useSection("process");
   const { data: stackData } = useSection("stack");
-  const image = hero?.image_url || heroPortrait;
+  const hasHeroImage = Boolean(hero?.image_url);
 
   return (
     <SiteLayout>
       <section className="container-x pt-14 pb-16 md:pt-24 md:pb-24">
-        <div className="grid gap-14 md:grid-cols-[1.3fr_1fr] md:gap-16">
+        <div className={`grid gap-14 md:gap-16 ${hasHeroImage ? "md:grid-cols-[1.3fr_1fr]" : ""}`}>
           <div>
             <Reveal>
               <p className="text-sm font-semibold uppercase tracking-widest text-primary">About</p>
@@ -47,11 +46,13 @@ function AboutPage() {
             </Reveal>
           </div>
 
-          <Reveal delay={160}>
-            <div className="relative mx-auto aspect-[3/4] w-full max-w-sm overflow-hidden rounded-[28px] border border-border shadow-large">
-              <img src={image} alt="Portrait" className="h-full w-full object-cover" />
-            </div>
-          </Reveal>
+          {hasHeroImage && (
+            <Reveal delay={160}>
+              <div className="relative mx-auto aspect-[3/4] w-full max-w-sm overflow-hidden rounded-[28px] border border-border shadow-large">
+                <img src={hero!.image_url!} alt="Portrait" className="h-full w-full object-cover object-top" />
+              </div>
+            </Reveal>
+          )}
         </div>
       </section>
 

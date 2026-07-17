@@ -279,6 +279,8 @@ export function useSection<K extends keyof SectionMap>(key: K) {
     queryFn: () => fetchSection(key),
     initialData: DEFAULTS[key],
     staleTime: 30_000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -320,4 +322,11 @@ export async function uploadMedia(file: File, folder = "misc"): Promise<string> 
   if (error) throw error;
   const { data } = supabase.storage.from("media").getPublicUrl(path);
   return data.publicUrl;
+}
+
+export async function upsertSiteSection<K extends keyof SectionMap>(key: K, data: SectionMap[K]) {
+  const { error } = await supabase
+    .from("site_settings")
+    .upsert({ key, data: data as never }, { onConflict: "key" });
+  if (error) throw error;
 }
