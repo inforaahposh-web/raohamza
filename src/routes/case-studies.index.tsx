@@ -3,7 +3,6 @@ import { ArrowUpRight } from "lucide-react";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal } from "@/components/site/Reveal";
 import { useCaseStudies, cleanSlug } from "@/lib/cms";
-import { OptimizedImage } from "@/components/site/OptimizedImage";
 
 export const Route = createFileRoute("/case-studies/")({
   component: CaseStudiesIndex,
@@ -53,13 +52,11 @@ function CaseStudiesIndex() {
                 >
                   {cs.cover_image_url && (
                     <div className="aspect-[16/9] w-full overflow-hidden bg-secondary">
-                      <OptimizedImage
+                      <img
                         src={cs.cover_image_url}
                         alt=""
-                        widthHint={800}
-                        quality={68}
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                        srcSetWidths={[400, 640, 800, 1000]}
+                        loading="lazy"
+                        decoding="async"
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>

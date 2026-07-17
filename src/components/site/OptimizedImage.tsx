@@ -12,16 +12,19 @@ type Props = Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "srcSet" | "loadi
   sizes?: string;
   /** Extra widths for srcSet (defaults derived from widthHint). */
   srcSetWidths?: number[];
+  /** When true, use original URL (no CDN resize/crop). */
+  original?: boolean;
 };
 
 export function OptimizedImage({
   src,
   widthHint,
   heights,
-  quality = 72,
+  quality = 78,
   priority = false,
   sizes,
   srcSetWidths,
+  original = false,
   alt = "",
   className,
   style,
@@ -29,12 +32,13 @@ export function OptimizedImage({
   ...rest
 }: Props) {
   const [failedOptimized, setFailedOptimized] = useState(false);
-  const widths = srcSetWidths ?? uniqueWidths([Math.round(widthHint * 0.6), widthHint, Math.round(widthHint * 1.5)]);
+  const widths = srcSetWidths ?? uniqueWidths([Math.round(widthHint * 0.75), widthHint, Math.round(widthHint * 1.6)]);
 
-  const optimized = failedOptimized
+  const useOriginal = original || failedOptimized;
+  const optimized = useOriginal
     ? src
-    : optimizeImageUrl(src, { width: widthHint, height: heights, quality, resize: "cover" });
-  const srcSet = failedOptimized ? undefined : optimizeImageSrcSet(src, widths, { quality, resize: "cover" });
+    : optimizeImageUrl(src, { width: widthHint, height: heights, quality, resize: "contain" });
+  const srcSet = useOriginal ? undefined : optimizeImageSrcSet(src, widths, { quality, resize: "contain" });
 
   return (
     <img

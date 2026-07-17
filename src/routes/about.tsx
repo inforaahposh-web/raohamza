@@ -3,7 +3,6 @@ import { ArrowUpRight } from "lucide-react";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal } from "@/components/site/Reveal";
 import { useSection } from "@/lib/cms";
-import { OptimizedImage } from "@/components/site/OptimizedImage";
 
 export const Route = createFileRoute("/about")({
   component: AboutPage,
@@ -49,16 +48,14 @@ function AboutPage() {
 
           {hasHeroImage && (
             <Reveal immediate delay={100}>
-              <div className="relative mx-auto aspect-[3/4] w-full max-w-sm overflow-hidden rounded-[28px] border border-border bg-secondary shadow-large">
-                <OptimizedImage
+              <div className="relative mx-auto aspect-[3/4] w-full max-w-sm overflow-hidden rounded-[28px] border border-border bg-white shadow-large">
+                <img
                   src={hero!.image_url!}
                   alt="Portrait"
-                  widthHint={560}
-                  quality={70}
-                  priority
-                  sizes="(max-width: 768px) 90vw, 380px"
-                  srcSetWidths={[320, 480, 640]}
-                  className="h-full w-full object-cover object-top"
+                  className="h-full w-full object-cover object-center"
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
                 />
               </div>
             </Reveal>

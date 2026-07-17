@@ -5,8 +5,6 @@ import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal, Counter } from "@/components/site/Reveal";
 import { useSection, useCaseStudies, useClientReviews, submitClientReview, cleanSlug, type HeroContent, type SiteInfo, type StatItem } from "@/lib/cms";
-import { OptimizedImage } from "@/components/site/OptimizedImage";
-import { optimizeImageUrl } from "@/lib/media";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -64,11 +62,10 @@ function HeroSectionInner({
 }) {
   useEffect(() => {
     if (!hero.image_url) return;
-    const href = optimizeImageUrl(hero.image_url, { width: 640, quality: 70, resize: "cover" });
     const link = document.createElement("link");
     link.rel = "preload";
     link.as = "image";
-    link.href = href;
+    link.href = hero.image_url;
     link.setAttribute("fetchpriority", "high");
     document.head.appendChild(link);
     return () => {
@@ -135,16 +132,14 @@ function HeroSectionInner({
           <Reveal immediate delay={120} className="relative">
             <div className="relative mx-auto aspect-[3/4] w-full max-w-md">
               <div className="absolute -inset-4 rounded-[36px] bg-gradient-to-br from-primary/40 via-transparent to-[#8b5cf6]/30 blur-2xl" aria-hidden />
-              <div className="relative h-full w-full overflow-hidden rounded-[28px] border border-border bg-secondary shadow-large">
-                <OptimizedImage
+              <div className="relative h-full w-full overflow-hidden rounded-[28px] border border-border bg-white shadow-large">
+                <img
                   src={hero.image_url!}
                   alt={`${site.name} portrait`}
-                  widthHint={640}
-                  quality={70}
-                  priority
-                  sizes="(max-width: 768px) 90vw, 420px"
-                  srcSetWidths={[360, 480, 640, 800]}
-                  className="h-full w-full object-cover object-top"
+                  className="h-full w-full object-cover object-center"
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
                 />
                 <div className="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur">
                   <div>
@@ -323,13 +318,11 @@ function CaseStudiesSection() {
             >
               {cs.cover_image_url && (
                 <div className="aspect-[16/9] w-full overflow-hidden bg-secondary">
-                  <OptimizedImage
+                  <img
                     src={cs.cover_image_url}
                     alt=""
-                    widthHint={640}
-                    quality={68}
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    srcSetWidths={[320, 480, 640, 800]}
+                    loading="lazy"
+                    decoding="async"
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>

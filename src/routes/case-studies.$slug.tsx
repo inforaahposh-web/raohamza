@@ -94,14 +94,12 @@ function CaseStudyPage() {
 
             {cs.cover_image_url && (
               <div className="case-study-cover">
-                <OptimizedImage
+                <img
                   src={cs.cover_image_url}
                   alt=""
-                  widthHint={900}
-                  quality={70}
-                  priority
-                  sizes="(max-width: 900px) 100vw, 520px"
-                  srcSetWidths={[400, 640, 900]}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
                 />
               </div>
             )}
