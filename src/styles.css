@@ -279,6 +279,9 @@
 .funnel-embed > * {
   max-width: 100%;
 }
+.funnel-embed noscript {
+  display: none !important;
+}
 @media (max-width: 768px) {
   .funnel-scroll-inner {
     max-height: min(70vh, 640px);
