@@ -30,21 +30,19 @@ function supabaseServer() {
 async function loadSiteContact() {
   const supabase = supabaseServer();
   const { data } = await supabase.from("site_settings").select("data").eq("key", "site").maybeSingle();
-  const site = (data?.data ?? {}) as { email?: string; whatsapp?: string; name?: string };
+  const site = (data?.data ?? {}) as { email?: string; telegram?: string; name?: string };
   return {
     email: site.email || process.env.LEAD_NOTIFY_EMAIL || "",
-    whatsapp: (site.whatsapp || process.env.LEAD_NOTIFY_WHATSAPP || "").replace(/[^\d+]/g, ""),
+    telegram: String(site.telegram || "").replace(/^@/, "").trim(),
   };
 }
 
 async function saveLead(lead: ContactLead) {
   const supabase = supabaseServer();
 
-  // Preferred: SECURITY DEFINER RPC (works with publishable key after SQL is run)
   const { error: rpcError } = await supabase.rpc("submit_contact_lead", { p_lead: lead as never });
   if (!rpcError) return;
 
-  // Fallback: direct upsert (needs service role, or admin RLS)
   const { data } = await supabase.from("site_settings").select("data").eq("key", "contact_leads").maybeSingle();
   const existing = (data?.data as { items?: ContactLead[] } | null)?.items;
   const items = Array.isArray(existing) ? existing : [];
@@ -63,7 +61,28 @@ async function saveLead(lead: ContactLead) {
   }
 }
 
-function leadMessage(lead: ContactLead) {
+export function buildLeadTelegramText(lead: LeadPayload) {
+  return [
+    "Hi! I submitted a brief on your website.",
+    "",
+    `Name: ${lead.name}`,
+    `Email: ${lead.email}`,
+    lead.company ? `Company: ${lead.company}` : null,
+    lead.budget ? `Budget: ${lead.budget}` : null,
+    "",
+    `Brief: ${lead.brief}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function buildTelegramChatUrl(username: string, text: string) {
+  const user = username.replace(/^@/, "").trim();
+  if (!user) return "";
+  return `https://t.me/${user}?text=${encodeURIComponent(text)}`;
+}
+
+function leadEmailBody(lead: ContactLead) {
   return [
     "New website lead",
     `Name: ${lead.name}`,
@@ -75,20 +94,6 @@ function leadMessage(lead: ContactLead) {
   ]
     .filter(Boolean)
     .join("\n");
-}
-
-/** WhatsApp message TO YOU only (CallMeBot). Visitor never opens WhatsApp. */
-async function notifyWhatsApp(phoneDigits: string, text: string) {
-  const apiKey = process.env.CALLMEBOT_APIKEY;
-  if (!apiKey) return { ok: false as const, skipped: true as const, reason: "CALLMEBOT_APIKEY not set" };
-  const phone = phoneDigits.replace(/[^\d]/g, "");
-  if (!phone) return { ok: false as const, skipped: true as const, reason: "No WhatsApp in site settings" };
-
-  const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(text)}&apikey=${encodeURIComponent(apiKey)}`;
-  const res = await fetch(url);
-  const body = await res.text();
-  if (!res.ok) return { ok: false as const, skipped: false as const, error: body || res.statusText };
-  return { ok: true as const, skipped: false as const };
 }
 
 async function notifyEmail(to: string, lead: ContactLead) {
@@ -107,7 +112,7 @@ async function notifyEmail(to: string, lead: ContactLead) {
       from,
       to: [to],
       subject: `New lead: ${lead.name}`,
-      text: leadMessage(lead),
+      text: leadEmailBody(lead),
     }),
   });
   const body = await res.text();
@@ -140,11 +145,15 @@ export const submitContactLead = createServerFn({ method: "POST" })
     await saveLead(lead);
 
     const site = await loadSiteContact();
-    const text = leadMessage(lead);
-    const [whatsapp, email] = await Promise.all([
-      notifyWhatsApp(site.whatsapp, text),
-      notifyEmail(site.email, lead),
-    ]);
+    const email = await notifyEmail(site.email, lead);
+    const telegramText = buildLeadTelegramText(data);
+    const telegramUrl = buildTelegramChatUrl(site.telegram, telegramText);
 
-    return { ok: true as const, leadId: lead.id, notifications: { whatsapp, email } };
+    return {
+      ok: true as const,
+      leadId: lead.id,
+      telegramUrl,
+      telegramUsername: site.telegram,
+      notifications: { email },
+    };
   });

@@ -7,6 +7,8 @@ import * as defaults from "./site-data";
 export type SocialLink = { label: string; href: string };
 export type SiteInfo = {
   name: string; role: string; tagline: string; email: string; whatsapp: string;
+  /** Telegram username for lead form redirect (without @) */
+  telegram: string;
   location: string; hours: string; social: SocialLink[];
 };
 export type HeroContent = {
@@ -154,7 +156,8 @@ export type CaseStudyRow = {
 const D = {
   site: {
     name: defaults.site.name, role: defaults.site.role, tagline: defaults.site.tagline,
-    email: defaults.site.email, whatsapp: defaults.site.whatsapp, location: defaults.site.location,
+    email: defaults.site.email, whatsapp: defaults.site.whatsapp, telegram: defaults.site.telegram || "",
+    location: defaults.site.location,
     hours: defaults.site.hours, social: [...defaults.site.social],
   } as SiteInfo,
   hero: {

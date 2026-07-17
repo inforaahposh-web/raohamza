@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, type FormEvent, type ReactNode } from "react";
-import { ArrowUpRight, Mail, MapPin, Clock, MessageCircle } from "lucide-react";
+import { ArrowUpRight, Mail, MapPin, Clock, MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal } from "@/components/site/Reveal";
 import { useSection } from "@/lib/cms";
-import { submitContactLead } from "@/lib/submit-lead";
+import { buildLeadTelegramText, buildTelegramChatUrl, submitContactLead } from "@/lib/submit-lead";
 import { site as fallbackSite } from "@/lib/site-data";
 
 export const Route = createFileRoute("/contact")({
@@ -22,27 +22,45 @@ export const Route = createFileRoute("/contact")({
 
 function ContactPage() {
   const { data: siteData } = useSection("site");
-  const site = siteData ?? fallbackSite;
+  const site = { ...fallbackSite, ...siteData, telegram: siteData?.telegram ?? fallbackSite.telegram };
   const [sending, setSending] = useState(false);
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
     const fd = new FormData(form);
+    const payload = {
+      name: String(fd.get("name") ?? ""),
+      email: String(fd.get("email") ?? ""),
+      company: String(fd.get("company") ?? ""),
+      budget: String(fd.get("budget") ?? ""),
+      brief: String(fd.get("brief") ?? ""),
+    };
     setSending(true);
+    // Open placeholder early so popup blockers don't block Telegram after async save
+    const tgWin = window.open("about:blank", "_blank");
     try {
-      await submitContactLead({
-        data: {
-          name: String(fd.get("name") ?? ""),
-          email: String(fd.get("email") ?? ""),
-          company: String(fd.get("company") ?? ""),
-          budget: String(fd.get("budget") ?? ""),
-          brief: String(fd.get("brief") ?? ""),
-        },
-      });
-      // Full page reload to thank-you — visitor never goes to WhatsApp
+      const result = await submitContactLead({ data: payload });
+
+      const telegramUrl =
+        result.telegramUrl ||
+        buildTelegramChatUrl(site.telegram || "", buildLeadTelegramText(payload));
+
+      if (telegramUrl) {
+        try {
+          sessionStorage.setItem("lead_telegram_url", telegramUrl);
+        } catch {
+          /* ignore */
+        }
+        if (tgWin) tgWin.location.href = telegramUrl;
+        else window.open(telegramUrl, "_blank");
+      } else if (tgWin) {
+        tgWin.close();
+      }
+
       window.location.assign("/thank-you");
     } catch (err) {
+      if (tgWin) tgWin.close();
       const msg =
         err instanceof Error
           ? err.message
@@ -53,6 +71,8 @@ function ContactPage() {
       setSending(false);
     }
   };
+
+  const telegramUser = (site.telegram || "").replace(/^@/, "").trim();
 
   return (
     <SiteLayout>
@@ -74,6 +94,14 @@ function ContactPage() {
             <div className="mt-10 space-y-4">
               <Info icon={<Mail className="h-5 w-5" />} label="Email" value={site.email} href={`mailto:${site.email}`} />
               <Info icon={<MessageCircle className="h-5 w-5" />} label="WhatsApp" value={site.whatsapp} href={`https://wa.me/${site.whatsapp.replace(/[^0-9]/g, "")}`} />
+              {telegramUser ? (
+                <Info
+                  icon={<Send className="h-5 w-5" />}
+                  label="Telegram"
+                  value={`@${telegramUser}`}
+                  href={`https://t.me/${telegramUser}`}
+                />
+              ) : null}
               <Info icon={<MapPin className="h-5 w-5" />} label="Location" value={site.location} />
               <Info icon={<Clock className="h-5 w-5" />} label="Working hours" value={site.hours} />
             </div>
@@ -106,7 +134,9 @@ function ContactPage() {
                 <button type="submit" disabled={sending} className="btn-primary mt-2 w-full justify-center">
                   {sending ? "Sending…" : "Send brief"} <ArrowUpRight className="h-4 w-4" />
                 </button>
-                <p className="text-xs text-body-light">By submitting you agree to be contacted about your enquiry.</p>
+                <p className="text-xs text-body-light">
+                  After submit, your lead is saved and Telegram opens so you can message me directly.
+                </p>
               </div>
             </form>
           </Reveal>

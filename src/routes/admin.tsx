@@ -278,6 +278,14 @@ function SiteSectionEditor() {
         <Field label="Role" value={d.role} onChange={(v) => setData({ ...d, role: v })} />
         <Field label="Email" value={d.email} onChange={(v) => setData({ ...d, email: v })} />
         <Field label="WhatsApp" value={d.whatsapp} onChange={(v) => setData({ ...d, whatsapp: v })} />
+        <Field
+          label="Telegram username (for lead form redirect)"
+          value={d.telegram ?? ""}
+          onChange={(v) => setData({ ...d, telegram: v.replace(/^@/, "").trim() })}
+        />
+        <p className="md:col-span-2 text-xs text-body-light -mt-2">
+          Example: <code className="rounded bg-secondary px-1">raohamza</code> — after form submit, visitor opens Telegram chat with this username (pre-filled message). WhatsApp stays on the contact page.
+        </p>
         <Field label="Location" value={d.location} onChange={(v) => setData({ ...d, location: v })} />
         <Field label="Hours" value={d.hours} onChange={(v) => setData({ ...d, hours: v })} />
       </div>
@@ -385,7 +393,7 @@ function LeadsManager() {
       <div>
         <h2 className="font-display text-2xl font-bold text-ink">Contact leads</h2>
         <p className="mt-1 text-sm text-body">
-          Leads from the contact form. They also notify your WhatsApp/email when those are configured.
+          Leads from the contact form. Saved here and emailed to you; the visitor is sent to Telegram to message you.
         </p>
       </div>
 

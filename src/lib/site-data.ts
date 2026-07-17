@@ -7,6 +7,7 @@ export const site = {
   tagline: "Paid Ads · Media Buyer · Funnel Strategist · CRM & Automation",
   email: "hello@raohamzasaif.com",
   whatsapp: "+92 300 0000000",
+  telegram: "",
   location: "Lahore, Pakistan · Working Globally",
   hours: "Mon–Sat · 10:00–19:00 PKT",
   social: [
