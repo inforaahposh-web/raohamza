@@ -4,7 +4,7 @@ import { SiteLayout } from "@/components/site/Layout";
 import { Reveal } from "@/components/site/Reveal";
 import { useCaseStudies, cleanSlug } from "@/lib/cms";
 
-export const Route = createFileRoute("/case-studies")({
+export const Route = createFileRoute("/case-studies/")({
   component: CaseStudiesIndex,
   head: () => ({
     meta: [
