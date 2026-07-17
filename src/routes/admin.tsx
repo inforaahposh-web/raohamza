@@ -19,7 +19,7 @@ export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — CMS" }, { name: "robots", content: "noindex" }] }),
 });
 
-const SECTION_KEYS = ["site","hero","bio","stats","services","stack","industries","testimonials","faqs","experience","process","avatar_messages"] as const;
+const SECTION_KEYS = ["site","hero","bio","stats","services","stack","industries","testimonials","faqs","experience","process","avatar_messages","footer"] as const;
 type SectionKey = typeof SECTION_KEYS[number];
 
 function AdminPage() {
@@ -68,6 +68,7 @@ function AdminPage() {
             <TabsList className="mb-6 flex h-auto w-full flex-wrap justify-start gap-1 bg-white p-1">
               <TabsTrigger value="hero" className="flex-1 sm:flex-none">Hero & Images</TabsTrigger>
               <TabsTrigger value="sections" className="flex-1 sm:flex-none">Site sections</TabsTrigger>
+              <TabsTrigger value="footer" className="flex-1 sm:flex-none">Footer</TabsTrigger>
               <TabsTrigger value="cases" className="flex-1 sm:flex-none">Case studies</TabsTrigger>
             </TabsList>
           )}
@@ -77,6 +78,9 @@ function AdminPage() {
           </TabsContent>
           <TabsContent value="sections" className="mt-0">
             <SectionsEditor />
+          </TabsContent>
+          <TabsContent value="footer" className="mt-0">
+            <FooterSectionEditor />
           </TabsContent>
           <TabsContent value="cases" className="mt-0">
             <CaseStudiesManager onEditingChange={setCaseEditing} />
@@ -427,6 +431,80 @@ function AvatarMessagesEditor() {
         <Field key={i} label={`Message ${i + 1}`} value={msg} onChange={(v) => { const items = [...data.items]; items[i] = v; setData({ ...data, items }); }} />
       ))}
       <Button onClick={save}><Save className="h-4 w-4" /> Save messages</Button>
+    </div>
+  );
+}
+
+function FooterSectionEditor() {
+  const qc = useQueryClient();
+  const [data, setData] = useSectionState("footer");
+  if (!data) return null;
+  const d = data;
+
+  async function save() {
+    const { error } = await supabase.from("site_settings").upsert({ key: "footer", data: d as never });
+    if (error) return toast.error(error.message);
+    toast.success("Footer saved");
+    qc.invalidateQueries({ queryKey: ["cms"] });
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-white p-6 space-y-6">
+      <div>
+        <h3 className="font-display text-lg font-bold text-ink">Footer</h3>
+        <p className="mt-1 text-sm text-body-light">Edit everything shown in the site footer — CTA, links, social, and bottom line.</p>
+      </div>
+
+      <div className="space-y-4 rounded-xl border border-border p-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-primary">Call to action (left column)</p>
+        <Field label="Eyebrow" value={d.ctaEyebrow} onChange={(v) => setData({ ...d, ctaEyebrow: v })} />
+        <Field label="Headline line 1" value={d.ctaLine1} onChange={(v) => setData({ ...d, ctaLine1: v })} />
+        <div className="grid gap-4 md:grid-cols-3">
+          <Field label="Headline line 2 (before highlight)" value={d.ctaLine2Prefix} onChange={(v) => setData({ ...d, ctaLine2Prefix: v })} />
+          <Field label="Highlighted word (purple)" value={d.ctaHighlight} onChange={(v) => setData({ ...d, ctaHighlight: v })} />
+          <Field label="Headline line 2 (after highlight)" value={d.ctaLine2Suffix} onChange={(v) => setData({ ...d, ctaLine2Suffix: v })} />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Button text" value={d.ctaButtonText} onChange={(v) => setData({ ...d, ctaButtonText: v })} />
+          <Field label="Button link (e.g. /contact)" value={d.ctaButtonLink} onChange={(v) => setData({ ...d, ctaButtonLink: v })} />
+        </div>
+      </div>
+
+      <div className="space-y-4 rounded-xl border border-border p-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-primary">Navigation links</p>
+        <Field label="Column label" value={d.navLabel} onChange={(v) => setData({ ...d, navLabel: v })} />
+        {d.navLinks.map((link, i) => (
+          <div key={i} className="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+            <Field label="Label" value={link.label} onChange={(v) => { const navLinks = [...d.navLinks]; navLinks[i] = { ...link, label: v }; setData({ ...d, navLinks }); }} />
+            <Field label="Path" value={link.to} onChange={(v) => { const navLinks = [...d.navLinks]; navLinks[i] = { ...link, to: v }; setData({ ...d, navLinks }); }} />
+            <Button variant="outline" size="sm" onClick={() => setData({ ...d, navLinks: d.navLinks.filter((_, j) => j !== i) })}><Trash2 className="h-4 w-4" /></Button>
+          </div>
+        ))}
+        <Button variant="outline" size="sm" onClick={() => setData({ ...d, navLinks: [...d.navLinks, { label: "", to: "/" }] })}><Plus className="h-4 w-4" /> Add nav link</Button>
+      </div>
+
+      <div className="space-y-4 rounded-xl border border-border p-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-primary">Social & contact (right column)</p>
+        <Field label="Column label" value={d.socialLabel} onChange={(v) => setData({ ...d, socialLabel: v })} />
+        {d.social.map((s, i) => (
+          <div key={i} className="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+            <Field label="Label" value={s.label} onChange={(v) => { const social = [...d.social]; social[i] = { ...s, label: v }; setData({ ...d, social }); }} />
+            <Field label="URL" value={s.href} onChange={(v) => { const social = [...d.social]; social[i] = { ...s, href: v }; setData({ ...d, social }); }} />
+            <Button variant="outline" size="sm" onClick={() => setData({ ...d, social: d.social.filter((_, j) => j !== i) })}><Trash2 className="h-4 w-4" /></Button>
+          </div>
+        ))}
+        <Button variant="outline" size="sm" onClick={() => setData({ ...d, social: [...d.social, { label: "", href: "" }] })}><Plus className="h-4 w-4" /> Add social link</Button>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Location" value={d.location} onChange={(v) => setData({ ...d, location: v })} />
+          <Field label="Working hours" value={d.hours} onChange={(v) => setData({ ...d, hours: v })} />
+        </div>
+      </div>
+
+      <Field label="Bottom tagline (right side of copyright)" value={d.bottomTagline} onChange={(v) => setData({ ...d, bottomTagline: v })} />
+
+      <p className="text-xs text-body-light">Copyright name comes from <strong>Site info → Name</strong> in Site sections tab.</p>
+
+      <Button onClick={save}><Save className="h-4 w-4" /> Save footer</Button>
     </div>
   );
 }

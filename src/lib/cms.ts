@@ -14,6 +14,23 @@ export type HeroContent = {
   image_url: string | null; avatar_url: string | null;
 };
 export type BioContent = { title: string; body: string };
+export type FooterNavLink = { label: string; to: string };
+export type FooterContent = {
+  ctaEyebrow: string;
+  ctaLine1: string;
+  ctaLine2Prefix: string;
+  ctaHighlight: string;
+  ctaLine2Suffix: string;
+  ctaButtonText: string;
+  ctaButtonLink: string;
+  navLabel: string;
+  navLinks: FooterNavLink[];
+  socialLabel: string;
+  social: SocialLink[];
+  location: string;
+  hours: string;
+  bottomTagline: string;
+};
 export type StatItem = { value: string; suffix: string; label: string };
 export type ServiceItem = { tag: string; title: string; desc: string };
 export type StackGroup = { cat: string; items: string[] };
@@ -155,6 +172,22 @@ const D = {
   experience: defaults.experience.map((e) => ({ ...e })) as ExperienceItem[],
   process: defaults.process.map((p) => ({ ...p })) as ProcessItem[],
   avatar_messages: [...defaults.avatarMessages],
+  footer: {
+    ctaEyebrow: defaults.footer.ctaEyebrow,
+    ctaLine1: defaults.footer.ctaLine1,
+    ctaLine2Prefix: defaults.footer.ctaLine2Prefix,
+    ctaHighlight: defaults.footer.ctaHighlight,
+    ctaLine2Suffix: defaults.footer.ctaLine2Suffix,
+    ctaButtonText: defaults.footer.ctaButtonText,
+    ctaButtonLink: defaults.footer.ctaButtonLink,
+    navLabel: defaults.footer.navLabel,
+    navLinks: defaults.footer.navLinks.map((n) => ({ ...n })),
+    socialLabel: defaults.footer.socialLabel,
+    social: defaults.footer.social.map((s) => ({ ...s })),
+    location: defaults.footer.location,
+    hours: defaults.footer.hours,
+    bottomTagline: defaults.footer.bottomTagline,
+  } as FooterContent,
 };
 
 type SectionMap = {
@@ -170,6 +203,7 @@ type SectionMap = {
   experience: { items: ExperienceItem[] };
   process: { items: ProcessItem[] };
   avatar_messages: { items: string[] };
+  footer: FooterContent;
 };
 
 export const DEFAULTS: SectionMap = {
@@ -185,6 +219,7 @@ export const DEFAULTS: SectionMap = {
   experience: { items: D.experience },
   process: { items: D.process },
   avatar_messages: { items: D.avatar_messages },
+  footer: D.footer,
 };
 
 async function fetchCaseStudies(): Promise<CaseStudyRow[]> {

@@ -204,3 +204,20 @@ export const avatarMessages = [
   "Almost there — grab a coffee ☕",
   "Say hi on the contact page 👋",
 ];
+
+export const footer = {
+  ctaEyebrow: "Let's talk",
+  ctaLine1: "Got a budget",
+  ctaLine2Prefix: "and a ",
+  ctaHighlight: "problem",
+  ctaLine2Suffix: "?",
+  ctaButtonText: "Start a project",
+  ctaButtonLink: "/contact",
+  navLabel: "Navigation",
+  navLinks: nav.map((n) => ({ label: n.label, to: n.to })),
+  socialLabel: "Elsewhere",
+  social: site.social.map((s) => ({ ...s })),
+  location: site.location,
+  hours: site.hours,
+  bottomTagline: "Built with intent · not templates.",
+};
