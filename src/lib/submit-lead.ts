@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 export type LeadPayload = {
   name: string;
@@ -14,52 +15,6 @@ export type ContactLead = LeadPayload & {
   created_at: string;
   source: string;
 };
-
-function supabaseServer() {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_PUBLISHABLE_KEY ||
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) throw new Error("Supabase is not configured on the server");
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
-async function loadSiteContact() {
-  const supabase = supabaseServer();
-  const { data } = await supabase.from("site_settings").select("data").eq("key", "site").maybeSingle();
-  const site = (data?.data ?? {}) as { email?: string; telegram?: string; name?: string };
-  return {
-    email: site.email || process.env.LEAD_NOTIFY_EMAIL || "",
-    telegram: String(site.telegram || "").replace(/^@/, "").trim(),
-  };
-}
-
-async function saveLead(lead: ContactLead) {
-  const supabase = supabaseServer();
-
-  const { error: rpcError } = await supabase.rpc("submit_contact_lead", { p_lead: lead as never });
-  if (!rpcError) return;
-
-  const { data } = await supabase.from("site_settings").select("data").eq("key", "contact_leads").maybeSingle();
-  const existing = (data?.data as { items?: ContactLead[] } | null)?.items;
-  const items = Array.isArray(existing) ? existing : [];
-  const next = [lead, ...items].slice(0, 500);
-  const { error } = await supabase
-    .from("site_settings")
-    .upsert({ key: "contact_leads", data: { items: next } as never }, { onConflict: "key" });
-
-  if (error) {
-    const rpcMsg = rpcError.message || "";
-    throw new Error(
-      /function|does not exist|PGRST202/i.test(rpcMsg)
-        ? "Lead SQL missing — run submit_contact_lead SQL in Supabase, then try again"
-        : error.message || rpcMsg || "Could not save lead",
-    );
-  }
-}
 
 export function buildLeadTelegramText(lead: LeadPayload) {
   return [
@@ -96,64 +51,106 @@ function leadEmailBody(lead: ContactLead) {
     .join("\n");
 }
 
-async function notifyEmail(to: string, lead: ContactLead) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return { ok: false as const, skipped: true as const, reason: "RESEND_API_KEY not set" };
-  if (!to) return { ok: false as const, skipped: true as const, reason: "No email in site settings" };
-
-  const from = process.env.LEAD_FROM_EMAIL || "onboarding@resend.dev";
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject: `New lead: ${lead.name}`,
-      text: leadEmailBody(lead),
-    }),
-  });
-  const body = await res.text();
-  if (!res.ok) return { ok: false as const, skipped: false as const, error: body || res.statusText };
-  return { ok: true as const, skipped: false as const };
+function readServerEnv(name: string): string | undefined {
+  if (typeof process !== "undefined" && process.env?.[name]) return process.env[name];
+  try {
+    const vite = (import.meta as { env?: Record<string, string | undefined> }).env;
+    return vite?.[name];
+  } catch {
+    return undefined;
+  }
 }
 
-export const submitContactLead = createServerFn({ method: "POST" })
-  .inputValidator((data: LeadPayload) => {
-    const name = String(data?.name ?? "").trim();
-    const email = String(data?.email ?? "").trim();
-    const brief = String(data?.brief ?? "").trim();
-    if (!name || !email || !brief) throw new Error("Name, email and brief are required");
-    return {
-      name,
-      email,
-      company: String(data?.company ?? "").trim(),
-      budget: String(data?.budget ?? "").trim(),
-      brief,
-    };
-  })
+/** Server-only: email you when a lead is saved (Resend). */
+export const notifyLeadEmail = createServerFn({ method: "POST" })
+  .inputValidator((data: ContactLead & { notifyEmail?: string }) => data)
   .handler(async ({ data }) => {
-    const lead: ContactLead = {
-      ...data,
-      id: crypto.randomUUID(),
-      created_at: new Date().toISOString(),
-      source: "contact",
-    };
+    const apiKey = readServerEnv("RESEND_API_KEY");
+    if (!apiKey) return { ok: false as const, skipped: true as const, reason: "RESEND_API_KEY not set" };
 
-    await saveLead(lead);
+    const to = (data.notifyEmail || readServerEnv("LEAD_NOTIFY_EMAIL") || "").trim();
+    if (!to) return { ok: false as const, skipped: true as const, reason: "No notify email" };
 
-    const site = await loadSiteContact();
-    const email = await notifyEmail(site.email, lead);
-    const telegramText = buildLeadTelegramText(data);
-    const telegramUrl = buildTelegramChatUrl(site.telegram, telegramText);
-
-    return {
-      ok: true as const,
-      leadId: lead.id,
-      telegramUrl,
-      telegramUsername: site.telegram,
-      notifications: { email },
-    };
+    const from = readServerEnv("LEAD_FROM_EMAIL") || "onboarding@resend.dev";
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject: `New lead: ${data.name}`,
+        text: leadEmailBody(data),
+      }),
+    });
+    const body = await res.text();
+    if (!res.ok) return { ok: false as const, skipped: false as const, error: body || res.statusText };
+    return { ok: true as const, skipped: false as const };
   });
+
+function normalizePayload(data: LeadPayload): LeadPayload {
+  const name = String(data?.name ?? "").trim();
+  const email = String(data?.email ?? "").trim();
+  const brief = String(data?.brief ?? "").trim();
+  if (!name || !email || !brief) throw new Error("Name, email and brief are required");
+  return {
+    name,
+    email,
+    company: String(data?.company ?? "").trim(),
+    budget: String(data?.budget ?? "").trim(),
+    brief,
+  };
+}
+
+/**
+ * Save lead in browser (uses VITE_ Supabase keys), email you via server, open Telegram on client.
+ */
+export async function submitContactLead(input: {
+  data: LeadPayload;
+  telegramUsername?: string;
+  notifyEmail?: string;
+}) {
+  const data = normalizePayload(input.data);
+  const lead: ContactLead = {
+    ...data,
+    id: crypto.randomUUID(),
+    created_at: new Date().toISOString(),
+    source: "contact",
+  };
+
+  const { error: rpcError } = await supabase.rpc("submit_contact_lead", {
+    p_lead: lead as unknown as Json,
+  });
+  if (rpcError) {
+    const msg = rpcError.message || "";
+    if (/function|does not exist|PGRST202/i.test(msg)) {
+      throw new Error("Lead SQL missing — run submit_contact_lead SQL in Supabase, then try again");
+    }
+    throw new Error(msg || "Could not save lead");
+  }
+
+  // Email is best-effort — don't block Telegram / thank-you
+  let emailResult: { ok: boolean; skipped?: boolean; reason?: string; error?: string } = {
+    ok: false,
+    skipped: true,
+  };
+  try {
+    emailResult = await notifyLeadEmail({
+      data: { ...lead, notifyEmail: input.notifyEmail },
+    });
+  } catch {
+    emailResult = { ok: false, skipped: false, error: "Email notify failed" };
+  }
+
+  const telegramUrl = buildTelegramChatUrl(input.telegramUsername || "", buildLeadTelegramText(data));
+
+  return {
+    ok: true as const,
+    leadId: lead.id,
+    telegramUrl,
+    telegramUsername: (input.telegramUsername || "").replace(/^@/, "").trim(),
+    notifications: { email: emailResult },
+  };
+}

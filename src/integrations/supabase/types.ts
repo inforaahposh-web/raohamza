@@ -206,6 +206,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      submit_contact_lead: {
+        Args: {
+          p_lead: Json
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin"

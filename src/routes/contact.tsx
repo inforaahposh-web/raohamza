@@ -40,7 +40,11 @@ function ContactPage() {
     // Open placeholder early so popup blockers don't block Telegram after async save
     const tgWin = window.open("about:blank", "_blank");
     try {
-      const result = await submitContactLead({ data: payload });
+      const result = await submitContactLead({
+        data: payload,
+        telegramUsername: site.telegram,
+        notifyEmail: site.email,
+      });
 
       const telegramUrl =
         result.telegramUrl ||
