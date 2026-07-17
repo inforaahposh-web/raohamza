@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { nav } from "@/lib/site-data";
 import { useSection } from "@/lib/cms";
 import { Menu, X } from "lucide-react";
-import avatarMark from "@/assets/avatar.png";
+import avatarMark from "@/assets/header-avatar.png";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -32,15 +32,15 @@ export function Header() {
     >
       <div className="container-x flex h-16 items-center justify-between gap-3 md:h-20">
         <Link to="/" className="group flex min-w-0 items-center gap-2.5">
-          <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-ink shadow-soft transition-transform duration-300 group-hover:-rotate-6">
+          <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-[#f0f0f0] shadow-soft transition-transform duration-300 group-hover:-rotate-6">
             <img
               src={avatarMark}
               alt=""
-              className="h-full w-full object-cover object-[center_12%]"
+              className="h-full w-full object-cover object-center"
             />
           </span>
           <span className="truncate font-display text-sm font-bold tracking-tight text-ink sm:text-base">
-            {siteName}<span className="italic-purple">.</span>
+            {siteName}
           </span>
         </Link>
 

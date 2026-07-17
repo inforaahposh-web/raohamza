@@ -390,5 +390,11 @@ export async function submitClientReview(input: { name: string; title: string; q
     quote,
     approved: false,
   });
-  if (error) throw error;
+  if (error) {
+    const msg = error.message || "";
+    if (/relation .* does not exist|Could not find the table|schema cache/i.test(msg) || error.code === "42P01" || error.code === "PGRST205") {
+      throw new Error("Reviews table is not set up yet. Run the client_reviews SQL in Supabase, then try again.");
+    }
+    throw new Error(msg || "Could not submit review");
+  }
 }
