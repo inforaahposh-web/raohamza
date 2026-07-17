@@ -243,6 +243,20 @@
 .animate-marquee { animation: marquee 40s linear infinite; }
 .animate-float-up { animation: float-up 0.7s cubic-bezier(0.4, 0, 0.2, 1) both; }
 .animate-blob { animation: blob 14s ease-in-out infinite; }
+
+/* Mobile: skip heavy blur blobs + shorten reveal for faster paint */
+@media (max-width: 768px) {
+  .animate-blob { display: none !important; }
+  .reveal { transition-duration: 0.35s; transform: translateY(12px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-blob,
+  .animate-avatar-bounce,
+  .animate-avatar-jump,
+  .animate-avatar-wave { animation: none !important; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
 .animate-avatar-bounce { animation: avatar-bounce 2.2s ease-in-out infinite; }
 .animate-avatar-jump { animation: avatar-jump 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
 .animate-avatar-wave { animation: avatar-wave 0.9s ease-in-out; transform-origin: bottom center; }

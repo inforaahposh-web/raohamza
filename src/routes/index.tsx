@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, Sparkles, CheckCircle2, ChevronDown } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, useEffect } from "react";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal, Counter } from "@/components/site/Reveal";
-import { useSection, useCaseStudies, useClientReviews, submitClientReview, cleanSlug } from "@/lib/cms";
+import { useSection, useCaseStudies, useClientReviews, submitClientReview, cleanSlug, type HeroContent, type SiteInfo, type StatItem } from "@/lib/cms";
+import { OptimizedImage } from "@/components/site/OptimizedImage";
+import { optimizeImageUrl } from "@/lib/media";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -37,6 +39,44 @@ function HeroSection() {
   const roasStat = stats?.items[2];
 
   return (
+    <HeroSectionInner
+      hero={hero}
+      site={site}
+      hasHeroImage={hasHeroImage}
+      topStat={topStat}
+      roasStat={roasStat}
+    />
+  );
+}
+
+function HeroSectionInner({
+  hero,
+  site,
+  hasHeroImage,
+  topStat,
+  roasStat,
+}: {
+  hero: HeroContent;
+  site: SiteInfo;
+  hasHeroImage: boolean;
+  topStat?: StatItem;
+  roasStat?: StatItem;
+}) {
+  useEffect(() => {
+    if (!hero.image_url) return;
+    const href = optimizeImageUrl(hero.image_url, { width: 640, quality: 70, resize: "cover" });
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = href;
+    link.setAttribute("fetchpriority", "high");
+    document.head.appendChild(link);
+    return () => {
+      link.remove();
+    };
+  }, [hero.image_url]);
+
+  return (
     <section className="relative overflow-hidden">
       <div className="absolute inset-0 grid-bg opacity-60" aria-hidden />
       <div className="pointer-events-none absolute -top-24 -left-24 h-[420px] w-[420px] rounded-full bg-primary/25 blur-3xl animate-blob" aria-hidden />
@@ -44,7 +84,7 @@ function HeroSection() {
 
       <div className={`container-x relative grid gap-10 py-16 md:gap-16 md:py-28 ${hasHeroImage ? "md:grid-cols-[1.35fr_1fr]" : ""}`}>
         <div className="flex flex-col justify-center">
-          <Reveal>
+          <Reveal immediate>
             <span className="inline-flex items-center gap-2 rounded-full border border-border bg-white/70 px-4 py-1.5 text-xs font-medium text-ink-soft shadow-soft backdrop-blur">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success/60" />
@@ -54,7 +94,7 @@ function HeroSection() {
             </span>
           </Reveal>
 
-          <Reveal delay={80}>
+          <Reveal immediate delay={80}>
             <h1 className="mt-6 font-display text-[11vw] leading-[0.95] tracking-tight text-ink sm:text-6xl md:text-[5.5rem] lg:text-[6.5rem]">
               {hero.headingLead}{" "}
               <span className="italic-purple">{hero.headingItalic}</span>
@@ -63,11 +103,11 @@ function HeroSection() {
             </h1>
           </Reveal>
 
-          <Reveal delay={160}>
+          <Reveal immediate delay={160}>
             <p className="mt-6 max-w-xl text-lg text-body md:text-xl">{hero.sub}</p>
           </Reveal>
 
-          <Reveal delay={240}>
+          <Reveal immediate delay={240}>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link to="/contact" className="btn-primary">
                 Book a call <ArrowUpRight className="h-4 w-4" />
@@ -78,7 +118,7 @@ function HeroSection() {
             </div>
           </Reveal>
 
-          <Reveal delay={320}>
+          <Reveal immediate delay={320}>
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <p className="text-sm font-medium text-body-light">Elsewhere:</p>
               {site.social.map((s) => (
@@ -92,11 +132,20 @@ function HeroSection() {
         </div>
 
         {hasHeroImage && (
-          <Reveal delay={200} className="relative">
+          <Reveal immediate delay={120} className="relative">
             <div className="relative mx-auto aspect-[3/4] w-full max-w-md">
               <div className="absolute -inset-4 rounded-[36px] bg-gradient-to-br from-primary/40 via-transparent to-[#8b5cf6]/30 blur-2xl" aria-hidden />
-              <div className="relative h-full w-full overflow-hidden rounded-[28px] border border-border bg-white shadow-large">
-                <img src={hero.image_url!} alt={`${site.name} portrait`} className="h-full w-full object-cover object-top" />
+              <div className="relative h-full w-full overflow-hidden rounded-[28px] border border-border bg-secondary shadow-large">
+                <OptimizedImage
+                  src={hero.image_url!}
+                  alt={`${site.name} portrait`}
+                  widthHint={640}
+                  quality={70}
+                  priority
+                  sizes="(max-width: 768px) 90vw, 420px"
+                  srcSetWidths={[360, 480, 640, 800]}
+                  className="h-full w-full object-cover object-top"
+                />
                 <div className="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur">
                   <div>
                     <p className="font-display text-sm font-bold text-ink">{site.name}</p>
@@ -274,7 +323,15 @@ function CaseStudiesSection() {
             >
               {cs.cover_image_url && (
                 <div className="aspect-[16/9] w-full overflow-hidden bg-secondary">
-                  <img src={cs.cover_image_url} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <OptimizedImage
+                    src={cs.cover_image_url}
+                    alt=""
+                    widthHint={640}
+                    quality={68}
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    srcSetWidths={[320, 480, 640, 800]}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
                 </div>
               )}
               <div className="flex flex-1 flex-col justify-between p-7">

@@ -10,6 +10,7 @@ import {
   type ResultKPI,
   type StatImage,
 } from "@/lib/cms";
+import { OptimizedImage } from "@/components/site/OptimizedImage";
 
 export const Route = createFileRoute("/case-studies/$slug")({
   loader: ({ context, params }) => {
@@ -93,7 +94,15 @@ function CaseStudyPage() {
 
             {cs.cover_image_url && (
               <div className="case-study-cover">
-                <img src={cs.cover_image_url} alt="" />
+                <OptimizedImage
+                  src={cs.cover_image_url}
+                  alt=""
+                  widthHint={900}
+                  quality={70}
+                  priority
+                  sizes="(max-width: 900px) 100vw, 520px"
+                  srcSetWidths={[400, 640, 900]}
+                />
               </div>
             )}
           </div>
@@ -255,9 +264,16 @@ function MediaCard({ media }: { media: MediaItem }) {
     <figure className="case-study-media-card">
       <div className="case-study-media-card__body">
         {media.type === "video" ? (
-          <video src={media.url} controls className={framed ? "cover" : undefined} />
+          <video src={media.url} controls preload="metadata" className={framed ? "cover" : undefined} />
         ) : (
-          <img src={media.url} alt={media.caption ?? ""} className={framed ? "cover" : undefined} />
+          <OptimizedImage
+            src={media.url}
+            alt={media.caption ?? ""}
+            widthHint={720}
+            quality={68}
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className={framed ? "cover" : undefined}
+          />
         )}
       </div>
       {media.caption && <figcaption>{media.caption}</figcaption>}
@@ -269,7 +285,13 @@ function StatCard({ stat }: { stat: StatImage }) {
   return (
     <figure className="case-study-media-card">
       <div className="case-study-media-card__body">
-        <img src={stat.url} alt={stat.caption ?? ""} />
+        <OptimizedImage
+          src={stat.url}
+          alt={stat.caption ?? ""}
+          widthHint={800}
+          quality={68}
+          sizes="(max-width: 768px) 100vw, 50vw"
+        />
       </div>
       {stat.caption && <figcaption>{stat.caption}</figcaption>}
     </figure>

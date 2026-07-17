@@ -36,6 +36,10 @@ export function Header() {
             <img
               src={avatarMark}
               alt=""
+              width={36}
+              height={36}
+              decoding="async"
+              fetchPriority="high"
               className="h-full w-full object-cover object-center"
             />
           </span>

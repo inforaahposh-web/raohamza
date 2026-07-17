@@ -224,9 +224,10 @@ export const DEFAULTS: SectionMap = {
 
 async function fetchCaseStudies(): Promise<CaseStudyRow[]> {
   try {
+    // List views don't need funnel HTML / creatives (huge payloads).
     const { data, error } = await supabase
       .from("case_studies")
-      .select("*")
+      .select("id,slug,title,industry,client,country,duration,platforms,summary,tags,results,cover_image_url,sort_order,published,created_at,updated_at,challenge,goal,strategy,outcome")
       .order("sort_order", { ascending: true });
     if (error) {
       console.warn("[cms] case_studies:", error.message);
@@ -257,6 +258,38 @@ export async function fetchCaseStudyBySlug(slug: string): Promise<CaseStudyRow |
   }
 }
 
+async function fetchAllSettings(): Promise<Record<string, unknown>> {
+  try {
+    const { data, error } = await supabase.from("site_settings").select("key, data");
+    if (error) {
+      console.warn("[cms] settings_all:", error.message);
+      return {};
+    }
+    const map: Record<string, unknown> = {};
+    for (const row of data ?? []) {
+      map[row.key as string] = row.data;
+    }
+    return map;
+  } catch (e) {
+    console.warn("[cms] settings_all:", e);
+    return {};
+  }
+}
+
+function mergeSection<K extends keyof SectionMap>(key: K, raw: unknown): SectionMap[K] {
+  const merged = { ...(DEFAULTS[key] as object), ...((raw ?? {}) as object) } as SectionMap[K];
+  if (key === "stack") {
+    const stack = merged as SectionMap["stack"];
+    return {
+      items: stack.items.map((group) => ({
+        ...group,
+        items: group.items.map((item) => (item === "Lovable" ? "React" : item)),
+      })),
+    } as SectionMap[K];
+  }
+  return merged;
+}
+
 async function fetchSection<K extends keyof SectionMap>(key: K): Promise<SectionMap[K]> {
   try {
     const { data, error } = await supabase.from("site_settings").select("data").eq("key", key).maybeSingle();
@@ -265,17 +298,7 @@ async function fetchSection<K extends keyof SectionMap>(key: K): Promise<Section
       return DEFAULTS[key];
     }
     if (!data) return DEFAULTS[key];
-    const merged = { ...(DEFAULTS[key] as object), ...(data.data as object) } as SectionMap[K];
-    if (key === "stack") {
-      const stack = merged as SectionMap["stack"];
-      return {
-        items: stack.items.map((group) => ({
-          ...group,
-          items: group.items.map((item) => (item === "Lovable" ? "React" : item)),
-        })),
-      } as SectionMap[K];
-    }
-    return merged;
+    return mergeSection(key, data.data);
   } catch (e) {
     console.warn(`[cms] ${key}:`, e);
     return DEFAULTS[key];
@@ -284,21 +307,32 @@ async function fetchSection<K extends keyof SectionMap>(key: K): Promise<Section
 
 // ---------- Reads ----------
 export function useSection<K extends keyof SectionMap>(key: K) {
-  return useQuery({
-    queryKey: ["cms", "section", key],
-    queryFn: () => fetchSection(key),
-    initialData: DEFAULTS[key],
-    staleTime: 30_000,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+  const all = useQuery({
+    queryKey: ["cms", "settings_all"],
+    queryFn: fetchAllSettings,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
+
+  const data = all.data
+    ? mergeSection(key, all.data[key])
+    : DEFAULTS[key];
+
+  return {
+    ...all,
+    data,
+  };
 }
 
 export function useCaseStudies() {
   return useQuery({
     queryKey: ["cms", "case_studies"],
     queryFn: fetchCaseStudies,
-    staleTime: 30_000,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -306,7 +340,8 @@ export function useCaseStudy(slug: string) {
   return useQuery({
     queryKey: ["cms", "case_study", slug],
     queryFn: () => fetchCaseStudyBySlug(slug),
-    staleTime: 30_000,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -373,7 +408,8 @@ export function useClientReviews() {
   return useQuery({
     queryKey: ["cms", "client_reviews"],
     queryFn: fetchApprovedReviews,
-    staleTime: 15_000,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
 }

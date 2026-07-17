@@ -3,6 +3,7 @@ import { ArrowUpRight } from "lucide-react";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal } from "@/components/site/Reveal";
 import { useSection } from "@/lib/cms";
+import { OptimizedImage } from "@/components/site/OptimizedImage";
 
 export const Route = createFileRoute("/about")({
   component: AboutPage,
@@ -29,16 +30,16 @@ function AboutPage() {
       <section className="container-x pt-14 pb-16 md:pt-24 md:pb-24">
         <div className={`grid gap-14 md:gap-16 ${hasHeroImage ? "md:grid-cols-[1.3fr_1fr]" : ""}`}>
           <div>
-            <Reveal>
+            <Reveal immediate>
               <p className="text-sm font-semibold uppercase tracking-widest text-primary">About</p>
               <h1 className="mt-4 font-display text-5xl font-bold leading-[0.95] text-ink md:text-8xl">
                 Media buyer, <span className="italic-purple">systems</span> guy.
               </h1>
             </Reveal>
-            <Reveal delay={120}>
+            <Reveal immediate delay={120}>
               <p className="mt-8 max-w-xl text-lg text-body">{bio?.body}</p>
             </Reveal>
-            <Reveal delay={280}>
+            <Reveal immediate delay={200}>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link to="/case-studies" className="btn-secondary">See the work</Link>
                 <Link to="/contact" className="btn-primary">Get in touch <ArrowUpRight className="h-4 w-4" /></Link>
@@ -47,9 +48,18 @@ function AboutPage() {
           </div>
 
           {hasHeroImage && (
-            <Reveal delay={160}>
-              <div className="relative mx-auto aspect-[3/4] w-full max-w-sm overflow-hidden rounded-[28px] border border-border shadow-large">
-                <img src={hero!.image_url!} alt="Portrait" className="h-full w-full object-cover object-top" />
+            <Reveal immediate delay={100}>
+              <div className="relative mx-auto aspect-[3/4] w-full max-w-sm overflow-hidden rounded-[28px] border border-border bg-secondary shadow-large">
+                <OptimizedImage
+                  src={hero!.image_url!}
+                  alt="Portrait"
+                  widthHint={560}
+                  quality={70}
+                  priority
+                  sizes="(max-width: 768px) 90vw, 380px"
+                  srcSetWidths={[320, 480, 640]}
+                  className="h-full w-full object-cover object-top"
+                />
               </div>
             </Reveal>
           )}
