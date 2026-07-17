@@ -22,6 +22,24 @@ export const Route = createFileRoute("/admin")({
 const SECTION_KEYS = ["site","hero","bio","stats","services","stack","industries","testimonials","faqs","experience","process","avatar_messages","footer"] as const;
 type SectionKey = typeof SECTION_KEYS[number];
 
+function formatSupabaseError(e: unknown): string {
+  if (!e) return "Unknown error";
+  if (typeof e === "string") return e;
+  if (e instanceof Error) return e.message;
+  if (typeof e === "object") {
+    const o = e as { message?: unknown; error_description?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+    const parts = [o.message, o.error_description, o.details, o.hint, o.code]
+      .filter((p) => typeof p === "string" && p.trim())
+      .map(String);
+    if (parts.length) return parts.join(" — ");
+  }
+  try {
+    return JSON.stringify(e);
+  } catch {
+    return "Save failed";
+  }
+}
+
 function AdminPage() {
   const nav = useNavigate();
   const { data: auth, isLoading } = useIsAdmin();
@@ -739,11 +757,11 @@ function FunnelLibraryManager({ onEditingChange }: { onEditingChange?: (editing:
       await refetch();
       qc.invalidateQueries({ queryKey: ["cms", "funnel_library"] });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (/relation .* does not exist|Could not find the table|schema cache|PGRST205/i.test(msg)) {
-        toast.error("Run funnel_library SQL in Supabase first");
+      const msg = formatSupabaseError(e);
+      if (/does not exist|Could not find the table|schema cache|PGRST205|404/i.test(msg)) {
+        toast.error("Database table missing — run funnel_library SQL in Supabase, then save again");
       } else {
-        toast.error(msg);
+        toast.error(msg || "Save failed");
       }
     }
   }
