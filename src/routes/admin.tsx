@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { LogOut, Save, Upload, Plus, Trash2 } from "lucide-react";
+import { CaseStudyFunnel } from "@/components/site/CaseStudyFunnel";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -690,8 +691,10 @@ function CaseEditor({ value, onCancel, onSaved }: { value: EditableCase; onCance
         {f.funnel_html && (
           <div className="mt-4 rounded-xl border border-border bg-secondary/30 p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-body-light">Live preview (scroll inside box)</p>
-            <div className="funnel-scroll-inner">
-              <div className="funnel-embed" dangerouslySetInnerHTML={{ __html: f.funnel_html }} />
+            <div className="case-study-funnel-shell mt-4">
+              <div className="funnel-scroll-inner">
+                <CaseStudyFunnel html={f.funnel_html} />
+              </div>
             </div>
           </div>
         )}

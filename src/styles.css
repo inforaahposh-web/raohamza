@@ -253,6 +253,28 @@
 .funnel-scroll-box {
   width: 100%;
 }
+.case-study-funnel-shell {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 0.75rem;
+  box-shadow: var(--shadow-soft);
+}
+@media (min-width: 768px) {
+  .case-study-funnel-shell {
+    padding: 1rem;
+  }
+}
+.case-study-funnel-frame {
+  display: block;
+  width: 100%;
+  min-height: 680px;
+  border: 0;
+  border-radius: 12px;
+  background: #fff;
+}
 .funnel-scroll-inner {
   max-height: min(85vh, 920px);
   overflow-y: auto;

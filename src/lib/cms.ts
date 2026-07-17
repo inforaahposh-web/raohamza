@@ -204,7 +204,7 @@ async function fetchCaseStudies(): Promise<CaseStudyRow[]> {
   }
 }
 
-async function fetchCaseStudyBySlug(slug: string): Promise<CaseStudyRow | null> {
+export async function fetchCaseStudyBySlug(slug: string): Promise<CaseStudyRow | null> {
   const clean = cleanSlug(slug);
   try {
     for (const candidate of [clean, slug, `/${clean}`, decodeURIComponent(slug)]) {
