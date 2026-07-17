@@ -250,22 +250,42 @@
 .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.8s cubic-bezier(0.4,0,0.2,1), transform 0.8s cubic-bezier(0.4,0,0.2,1); }
 .reveal.in { opacity: 1; transform: translateY(0); }
 
+.funnel-scroll-box {
+  width: 100%;
+}
+.funnel-scroll-inner {
+  max-height: min(85vh, 920px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  background: #fff;
+}
 .funnel-embed iframe,
 .funnel-embed embed,
 .funnel-embed object {
   width: 100% !important;
-  min-height: 480px;
+  height: 720px;
+  max-height: none;
   border: 0;
   border-radius: 12px;
+  display: block;
 }
 .funnel-embed {
   width: 100%;
-  min-height: 400px;
+  min-height: 0;
+}
+.funnel-embed > * {
+  max-width: 100%;
 }
 @media (max-width: 768px) {
+  .funnel-scroll-inner {
+    max-height: min(70vh, 640px);
+  }
   .funnel-embed iframe,
   .funnel-embed embed,
   .funnel-embed object {
-    min-height: 320px;
+    height: 520px;
   }
 }

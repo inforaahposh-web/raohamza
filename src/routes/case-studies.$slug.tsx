@@ -2,20 +2,21 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal } from "@/components/site/Reveal";
-import { useCaseStudy, mediaAspectClass } from "@/lib/cms";
+import { useCaseStudy, mediaAspectClass, cleanSlug } from "@/lib/cms";
 
 export const Route = createFileRoute("/case-studies/$slug")({
   component: CaseStudyPage,
   head: ({ params }) => ({
     meta: [
-      { title: `${params.slug} — Rao Hamza Saif` },
+      { title: `${cleanSlug(params.slug)} — Rao Hamza Saif` },
       { name: "description", content: "Case study" },
     ],
   }),
 });
 
 function CaseStudyPage() {
-  const { slug } = Route.useParams();
+  const { slug: rawSlug } = Route.useParams();
+  const slug = cleanSlug(rawSlug);
   const { data: cs, isLoading } = useCaseStudy(slug);
 
   if (isLoading) {
@@ -92,8 +93,11 @@ function CaseStudyPage() {
             <div className="mt-20">
               <p className="text-sm font-semibold uppercase tracking-widest text-primary">Funnel preview</p>
               <h2 className="mt-3 font-display text-3xl font-bold text-ink md:text-5xl">The live <span className="italic-purple">funnel</span>.</h2>
-              <div className="mt-8 overflow-hidden rounded-[22px] border border-border bg-white p-2 md:p-4">
-                <div className="funnel-embed w-full overflow-auto" dangerouslySetInnerHTML={{ __html: cs.funnel_html }} />
+              <p className="mt-2 text-sm text-body-light">Scroll inside the preview box — the rest of the page stays still.</p>
+              <div className="funnel-scroll-box mt-6 rounded-[22px] border border-border bg-white p-2 md:p-4">
+                <div className="funnel-scroll-inner">
+                  <div className="funnel-embed" dangerouslySetInnerHTML={{ __html: cs.funnel_html }} />
+                </div>
               </div>
             </div>
           </Reveal>

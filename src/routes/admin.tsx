@@ -24,6 +24,7 @@ type SectionKey = typeof SECTION_KEYS[number];
 function AdminPage() {
   const nav = useNavigate();
   const { data: auth, isLoading } = useIsAdmin();
+  const [caseEditing, setCaseEditing] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !auth?.user) nav({ to: "/auth" });
@@ -45,7 +46,7 @@ function AdminPage() {
 
   return (
     <div className="min-h-screen bg-secondary">
-      <header className="sticky top-0 z-10 border-b border-border bg-white/80 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-border bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div>
             <p className="font-display text-lg font-bold text-ink">Admin Dashboard</p>
@@ -60,22 +61,24 @@ function AdminPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl p-4 md:p-8">
+      <div className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8">
         <Tabs defaultValue="hero">
-          <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="hero">Hero & Images</TabsTrigger>
-            <TabsTrigger value="sections">Site sections</TabsTrigger>
-            <TabsTrigger value="cases">Case studies</TabsTrigger>
-          </TabsList>
+          {!caseEditing && (
+            <TabsList className="mb-6 flex h-auto w-full flex-wrap justify-start gap-1 bg-white p-1">
+              <TabsTrigger value="hero" className="flex-1 sm:flex-none">Hero & Images</TabsTrigger>
+              <TabsTrigger value="sections" className="flex-1 sm:flex-none">Site sections</TabsTrigger>
+              <TabsTrigger value="cases" className="flex-1 sm:flex-none">Case studies</TabsTrigger>
+            </TabsList>
+          )}
 
-          <TabsContent value="hero" className="mt-6">
+          <TabsContent value="hero" className="mt-0">
             <HeroImagesEditor />
           </TabsContent>
-          <TabsContent value="sections" className="mt-6">
+          <TabsContent value="sections" className="mt-0">
             <SectionsEditor />
           </TabsContent>
-          <TabsContent value="cases" className="mt-6">
-            <CaseStudiesManager />
+          <TabsContent value="cases" className="mt-0">
+            <CaseStudiesManager onEditingChange={setCaseEditing} />
           </TabsContent>
         </Tabs>
       </div>
@@ -136,13 +139,14 @@ function HeroImagesEditor() {
   );
 }
 
-function Field({ label, value, onChange, textarea }: { label: string; value: string; onChange: (v: string) => void; textarea?: boolean }) {
+function Field({ label, value, onChange, textarea, hint }: { label: string; value: string; onChange: (v: string) => void; textarea?: boolean; hint?: string }) {
   return (
-    <div>
-      <Label>{label}</Label>
+    <div className="space-y-1.5">
+      <Label className="text-sm font-semibold">{label}</Label>
       {textarea
-        ? <Textarea value={value} onChange={(e) => onChange(e.target.value)} rows={3} />
+        ? <Textarea value={value} onChange={(e) => onChange(e.target.value)} rows={3} className="resize-y" />
         : <Input value={value} onChange={(e) => onChange(e.target.value)} />}
+      {hint && <p className="text-xs text-body-light">{hint}</p>}
     </div>
   );
 }
@@ -475,7 +479,7 @@ function SectionCard({ sectionKey }: { sectionKey: "stack" | "industries" }) {
 // ============= Case studies manager =============
 type EditableCase = Partial<CaseStudyRow> & { platforms_text?: string; tags_text?: string };
 
-function CaseStudiesManager() {
+function CaseStudiesManager({ onEditingChange }: { onEditingChange?: (editing: boolean) => void }) {
   const qc = useQueryClient();
   const { data: cases, refetch } = useQuery({
     queryKey: ["admin", "cases"],
@@ -486,6 +490,10 @@ function CaseStudiesManager() {
     },
   });
   const [editing, setEditing] = useState<EditableCase | null>(null);
+
+  useEffect(() => {
+    onEditingChange?.(!!editing);
+  }, [editing, onEditingChange]);
 
   function newBlank(): EditableCase {
     return {
@@ -636,17 +644,21 @@ function CaseEditor({ value, onCancel, onSaved }: { value: EditableCase; onCance
   const [newCreativeAspect, setNewCreativeAspect] = useState<MediaAspect>("auto");
 
   return (
-    <div className="rounded-2xl border border-border bg-white p-4 md:p-6 space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="font-display text-2xl font-bold text-ink">{f.id ? "Edit" : "New"} case study</h2>
+    <div className="rounded-2xl border border-border bg-white shadow-soft">
+      <div className="sticky top-[57px] z-20 flex flex-col gap-3 border-b border-border bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between md:px-6">
+        <div>
+          <h2 className="font-display text-xl font-bold text-ink md:text-2xl">{f.id ? "Edit" : "New"} case study</h2>
+          {f.slug && <p className="text-xs text-body-light mt-1">URL: /case-studies/{slugify(f.slug)}</p>}
+        </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={onCancel}>Cancel</Button>
           <Button onClick={save}><Save className="h-4 w-4" /> Save</Button>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Slug (URL)" value={f.slug || ""} onChange={(v) => up("slug", slugify(v))} />
+      <div className="space-y-8 p-4 md:p-6">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Slug (URL)" value={f.slug || ""} onChange={(v) => up("slug", slugify(v))} hint="Use ecom — not /ecom" />
         <Field label="Title" value={f.title || ""} onChange={(v) => up("title", v)} />
         <Field label="Industry" value={f.industry || ""} onChange={(v) => up("industry", v)} />
         <Field label="Client" value={f.client || ""} onChange={(v) => up("client", v)} />
@@ -677,8 +689,10 @@ function CaseEditor({ value, onCancel, onSaved }: { value: EditableCase; onCance
         <Textarea rows={6} className="font-mono text-xs" value={f.funnel_html || ""} onChange={(e) => up("funnel_html", e.target.value)} placeholder="<iframe src='...'></iframe> or full HTML" />
         {f.funnel_html && (
           <div className="mt-4 rounded-xl border border-border bg-secondary/30 p-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-body-light">Live preview</p>
-            <div className="funnel-embed overflow-auto rounded-lg bg-white p-2" dangerouslySetInnerHTML={{ __html: f.funnel_html }} />
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-body-light">Live preview (scroll inside box)</p>
+            <div className="funnel-scroll-inner">
+              <div className="funnel-embed" dangerouslySetInnerHTML={{ __html: f.funnel_html }} />
+            </div>
           </div>
         )}
       </div>
@@ -742,6 +756,7 @@ function CaseEditor({ value, onCancel, onSaved }: { value: EditableCase; onCance
       <div>
         <Label>Sort order</Label>
         <Input type="number" value={f.sort_order ?? 0} onChange={(e) => up("sort_order", parseInt(e.target.value) || 0)} />
+      </div>
       </div>
     </div>
   );

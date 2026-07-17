@@ -69,7 +69,7 @@ export function normalizeCaseStudy(row: Record<string, unknown>): CaseStudyRow {
 
   return {
     id: String(row.id ?? ""),
-    slug: String(row.slug ?? ""),
+    slug: slugify(String(row.slug ?? "")),
     title: String(row.title ?? ""),
     industry: row.industry ? String(row.industry) : null,
     client: row.client ? String(row.client) : null,
@@ -93,7 +93,20 @@ export function normalizeCaseStudy(row: Record<string, unknown>): CaseStudyRow {
 }
 
 export function slugify(value: string): string {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^\/+|\/+$/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function cleanSlug(raw: string): string {
+  try {
+    return slugify(decodeURIComponent(raw));
+  } catch {
+    return slugify(raw);
+  }
 }
 
 export type CaseStudyRow = {
@@ -192,14 +205,17 @@ async function fetchCaseStudies(): Promise<CaseStudyRow[]> {
 }
 
 async function fetchCaseStudyBySlug(slug: string): Promise<CaseStudyRow | null> {
+  const clean = cleanSlug(slug);
   try {
-    const { data, error } = await supabase.from("case_studies").select("*").eq("slug", slug).maybeSingle();
-    if (error) {
-      console.warn(`[cms] case_study/${slug}:`, error.message);
-      return null;
+    for (const candidate of [clean, slug, `/${clean}`, decodeURIComponent(slug)]) {
+      const { data, error } = await supabase.from("case_studies").select("*").eq("slug", candidate).maybeSingle();
+      if (error) {
+        console.warn(`[cms] case_study/${candidate}:`, error.message);
+        continue;
+      }
+      if (data) return normalizeCaseStudy(data as Record<string, unknown>);
     }
-    if (!data) return null;
-    return normalizeCaseStudy(data as Record<string, unknown>);
+    return null;
   } catch (e) {
     console.warn(`[cms] case_study/${slug}:`, e);
     return null;

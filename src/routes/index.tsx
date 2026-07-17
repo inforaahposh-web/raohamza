@@ -3,7 +3,7 @@ import { ArrowUpRight, Sparkles, CheckCircle2, ChevronDown } from "lucide-react"
 import { useState } from "react";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal, Counter } from "@/components/site/Reveal";
-import { useSection, useCaseStudies } from "@/lib/cms";
+import { useSection, useCaseStudies, cleanSlug } from "@/lib/cms";
 import heroPortrait from "@/assets/hero-portrait.jpg";
 
 export const Route = createFileRoute("/")({
@@ -267,7 +267,7 @@ function CaseStudiesSection() {
           <Reveal key={cs.id} delay={i * 40}>
             <Link
               to="/case-studies/$slug"
-              params={{ slug: cs.slug }}
+              params={{ slug: cleanSlug(cs.slug) }}
               className="card-premium group flex h-full flex-col justify-between overflow-hidden p-0"
             >
               {cs.cover_image_url && (

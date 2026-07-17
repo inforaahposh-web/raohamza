@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import { SiteLayout } from "@/components/site/Layout";
 import { Reveal } from "@/components/site/Reveal";
-import { useCaseStudies } from "@/lib/cms";
+import { useCaseStudies, cleanSlug } from "@/lib/cms";
 
 export const Route = createFileRoute("/case-studies")({
   component: CaseStudiesIndex,
@@ -47,7 +47,7 @@ function CaseStudiesIndex() {
               <Reveal key={cs.id} delay={i * 40}>
                 <Link
                   to="/case-studies/$slug"
-                  params={{ slug: cs.slug }}
+                  params={{ slug: cleanSlug(cs.slug) }}
                   className="card-premium group block h-full overflow-hidden p-0 md:p-0"
                 >
                   {cs.cover_image_url && (
