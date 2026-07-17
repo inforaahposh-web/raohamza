@@ -1,13 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
-import type { ReactNode } from "react";
 import { SiteLayout } from "@/components/site/Layout";
-import { Reveal } from "@/components/site/Reveal";
 import { CaseStudyFunnel } from "@/components/site/CaseStudyFunnel";
 import {
   cleanSlug,
   fetchCaseStudyBySlug,
-  mediaAspectClass,
   useCaseStudy,
   type MediaItem,
   type ResultKPI,
@@ -39,7 +36,9 @@ function CaseStudyPage() {
   if (isLoading) {
     return (
       <SiteLayout>
-        <CaseStudySkeleton />
+        <div className="case-study-inner" style={{ paddingBlock: "6rem" }}>
+          <p className="text-body">Loading case study…</p>
+        </div>
       </SiteLayout>
     );
   }
@@ -47,9 +46,9 @@ function CaseStudyPage() {
   if (isError || !cs) {
     return (
       <SiteLayout>
-        <div className="container-x py-24">
+        <div className="case-study-inner" style={{ paddingBlock: "6rem" }}>
           <p className="text-body">Case study not found.</p>
-          <Link to="/case-studies" className="mt-4 inline-flex items-center gap-1.5 text-primary">
+          <Link to="/case-studies" className="case-study-back" style={{ marginTop: "1rem" }}>
             <ArrowLeft className="h-4 w-4" /> Back to all case studies
           </Link>
         </div>
@@ -64,89 +63,84 @@ function CaseStudyPage() {
     { title: "Outcome", body: cs.outcome },
   ].filter((b) => b.body);
 
+  const mediaGrid =
+    cs.ad_creatives.length <= 1
+      ? "case-study-media-grid--1"
+      : cs.ad_creatives.length === 2
+        ? "case-study-media-grid--2"
+        : "case-study-media-grid--3";
+
   return (
     <SiteLayout>
-      <article className="w-full overflow-x-hidden">
-        <header className="container-x w-full pt-14 pb-10 md:pt-24 md:pb-14">
-          <Link
-            to="/case-studies"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-body-light transition-colors hover:text-primary"
-          >
+      <article className="case-study">
+        {/* Hero */}
+        <div className="case-study-inner">
+          <Link to="/case-studies" className="case-study-back">
             <ArrowLeft className="h-4 w-4" /> All case studies
           </Link>
 
-          <div className="mt-8 flex w-full flex-wrap items-center gap-2">
-            {cs.industry && (
-              <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">
-                {cs.industry}
-              </span>
-            )}
-            {cs.platforms.map((p) => (
-              <span
-                key={p}
-                className="rounded-full border border-border bg-white px-3 py-1 text-xs font-medium text-ink-soft"
-              >
-                {p}
-              </span>
-            ))}
-          </div>
-
-          <h1 className="mt-6 w-full max-w-5xl font-display text-4xl font-bold leading-[1.02] tracking-tight text-ink md:text-7xl">
-            {cs.title}
-          </h1>
-          {cs.summary && (
-            <p className="mt-6 w-full max-w-3xl text-lg leading-relaxed text-body">{cs.summary}</p>
-          )}
-
-          {cs.cover_image_url && (
-            <div className="mt-10 w-full overflow-hidden rounded-[22px] border border-border shadow-soft">
-              <div className="aspect-[16/9] w-full bg-secondary">
-                <img src={cs.cover_image_url} alt="" className="h-full w-full object-cover" />
-              </div>
+          <div className="case-study-hero-grid">
+            <div>
+              <p className="case-study-eyebrow">Case study</p>
+              {cs.industry && (
+                <div style={{ marginTop: "1rem" }}>
+                  <span className="case-study-tag case-study-tag--primary">{cs.industry}</span>
+                </div>
+              )}
+              <h1 className="case-study-title">{cs.title}</h1>
+              {cs.summary && <p className="case-study-summary">{cs.summary}</p>}
             </div>
-          )}
-        </header>
 
-        <section className="container-x w-full pb-12 md:pb-16">
-          <dl className="grid w-full grid-cols-2 gap-4 md:grid-cols-4">
-            <MetaCard label="Client" value={cs.client ?? "—"} />
-            <MetaCard label="Country" value={cs.country ?? "—"} />
-            <MetaCard label="Duration" value={cs.duration ?? "—"} />
-            <MetaCard label="Platforms" value={cs.platforms.join(", ") || "—"} />
+            {cs.cover_image_url && (
+              <div className="case-study-cover">
+                <img src={cs.cover_image_url} alt="" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Meta */}
+        <div className="case-study-inner">
+          <dl className="case-study-meta-grid">
+            <Meta label="Client" value={cs.client ?? "—"} />
+            <Meta label="Country" value={cs.country ?? "—"} />
+            <Meta label="Duration" value={cs.duration ?? "—"} />
+            <Meta label="Platforms" value={cs.platforms.join(", ") || "—"} />
           </dl>
-        </section>
+        </div>
 
+        {/* KPIs */}
         {cs.results.length > 0 && (
-          <section className="w-full bg-dark-bg py-16 md:py-20">
-            <div className="container-x w-full">
-              <SectionHeading
-                eyebrow="Results"
-                title={<>The <span className="italic-purple">numbers</span>.</>}
-                dark
-              />
-              <div className="mt-10 grid w-full grid-cols-2 gap-4 md:grid-cols-4 md:gap-5">
+          <section className="case-study-band case-study-band--dark">
+            <div className="case-study-inner">
+              <p className="case-study-eyebrow">Results</p>
+              <h2 className="case-study-section-title case-study-section-title--light">
+                The <span className="italic-purple">numbers</span>.
+              </h2>
+              <div className="case-study-kpi-grid">
                 {cs.results.map((r, idx) => (
-                  <KpiCard key={`${r.label}-${idx}`} kpi={r} />
+                  <Kpi key={`${r.label}-${idx}`} kpi={r} />
                 ))}
               </div>
             </div>
           </section>
         )}
 
+        {/* Story */}
         {storyBlocks.length > 0 && (
-          <section className="w-full bg-secondary py-16 md:py-24">
-            <div className="container-x w-full">
-              <SectionHeading
-                eyebrow="The brief"
-                title={<>What we <span className="italic-purple">solved</span>.</>}
-              />
-              <div className="mt-10 grid w-full grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+          <section className="case-study-band case-study-band--muted">
+            <div className="case-study-inner">
+              <p className="case-study-eyebrow">The brief</p>
+              <h2 className="case-study-section-title">
+                What we <span className="italic-purple">solved</span>.
+              </h2>
+              <div className="case-study-story-grid">
                 {storyBlocks.map((b, idx) => (
-                  <StoryCard
+                  <Story
                     key={b.title}
                     title={b.title}
                     body={b.body!}
-                    spanFull={storyBlocks.length % 2 === 1 && idx === storyBlocks.length - 1}
+                    full={storyBlocks.length % 2 === 1 && idx === storyBlocks.length - 1}
                   />
                 ))}
               </div>
@@ -154,14 +148,17 @@ function CaseStudyPage() {
           </section>
         )}
 
+        {/* Funnel */}
         {cs.funnel_html && (
-          <section className="container-x w-full py-16 md:py-24">
-            <SectionHeading
-              eyebrow="Funnel preview"
-              title={<>The live <span className="italic-purple">funnel</span>.</>}
-              subtitle="Scroll inside the preview box — the rest of the page stays still."
-            />
-            <div className="case-study-funnel-shell mt-8 w-full">
+          <section className="case-study-inner" style={{ paddingBlock: "4rem" }}>
+            <p className="case-study-eyebrow">Funnel preview</p>
+            <h2 className="case-study-section-title">
+              The live <span className="italic-purple">funnel</span>.
+            </h2>
+            <p className="case-study-summary" style={{ marginTop: "0.75rem", fontSize: "0.9375rem" }}>
+              Scroll inside the preview box — the rest of the page stays still.
+            </p>
+            <div className="case-study-funnel-shell">
               <div className="funnel-scroll-inner">
                 <CaseStudyFunnel html={cs.funnel_html} />
               </div>
@@ -169,29 +166,31 @@ function CaseStudyPage() {
           </section>
         )}
 
+        {/* Creatives */}
         {cs.ad_creatives.length > 0 && (
-          <section className="w-full bg-secondary py-16 md:py-24">
-            <div className="container-x w-full">
-              <SectionHeading
-                eyebrow="Ad creatives"
-                title={<>The <span className="italic-purple">assets</span> that ran.</>}
-              />
-              <div className={`mt-10 grid w-full gap-5 ${creativeGridClass(cs.ad_creatives.length)}`}>
+          <section className="case-study-band case-study-band--muted">
+            <div className="case-study-inner">
+              <p className="case-study-eyebrow">Ad creatives</p>
+              <h2 className="case-study-section-title">
+                The <span className="italic-purple">assets</span> that ran.
+              </h2>
+              <div className={`case-study-media-grid ${mediaGrid}`}>
                 {cs.ad_creatives.map((m, idx) => (
-                  <CreativeCard key={`${m.url}-${idx}`} media={m} />
+                  <MediaCard key={`${m.url}-${idx}`} media={m} />
                 ))}
               </div>
             </div>
           </section>
         )}
 
+        {/* Dashboard stats */}
         {cs.campaign_stat_images.length > 0 && (
-          <section className="container-x w-full py-16 md:py-24">
-            <SectionHeading
-              eyebrow="Campaign performance"
-              title={<>Straight from the <span className="italic-purple">dashboard</span>.</>}
-            />
-            <div className={`mt-10 grid w-full gap-5 ${statGridClass(cs.campaign_stat_images.length)}`}>
+          <section className="case-study-inner" style={{ paddingBlock: "4rem" }}>
+            <p className="case-study-eyebrow">Campaign performance</p>
+            <h2 className="case-study-section-title">
+              Straight from the <span className="italic-purple">dashboard</span>.
+            </h2>
+            <div className={`case-study-media-grid ${cs.campaign_stat_images.length === 1 ? "case-study-media-grid--1" : "case-study-media-grid--2"}`}>
               {cs.campaign_stat_images.map((s, idx) => (
                 <StatCard key={`${s.url}-${idx}`} stat={s} />
               ))}
@@ -199,145 +198,80 @@ function CaseStudyPage() {
           </section>
         )}
 
-        <section className="container-x w-full pb-20 md:pb-28">
-          <div className="flex w-full flex-col items-start justify-between gap-6 rounded-[22px] border border-border bg-white p-8 shadow-soft md:flex-row md:items-center md:p-10">
-            <div className="min-w-0 flex-1">
+        {/* CTA */}
+        <div className="case-study-inner">
+          <div className="case-study-cta">
+            <div>
               {cs.tags.length > 0 && (
-                <div className="mb-4 flex flex-wrap gap-2">
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
                   {cs.tags.map((t) => (
-                    <span key={t} className="rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">
-                      {t}
-                    </span>
+                    <span key={t} className="case-study-tag case-study-tag--primary">{t}</span>
                   ))}
                 </div>
               )}
-              <p className="font-display text-2xl font-bold text-ink md:text-3xl">Want similar results?</p>
-              <p className="mt-2 max-w-lg text-body">
-                Book a free intro call — I'll walk through what worked here and whether it fits your account.
-              </p>
+              <h2>Want similar results?</h2>
+              <p>Book a free intro call — I'll walk through what worked here and whether it fits your account.</p>
             </div>
-            <Link to="/contact" className="btn-primary shrink-0">
+            <Link to="/contact" className="btn-primary">
               Book a call <ArrowUpRight className="h-4 w-4" />
             </Link>
           </div>
-        </section>
+        </div>
       </article>
     </SiteLayout>
   );
 }
 
-function creativeGridClass(count: number) {
-  if (count === 1) return "grid-cols-1";
-  if (count === 2) return "grid-cols-1 md:grid-cols-2";
-  return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
-}
-
-function statGridClass(count: number) {
-  if (count === 1) return "grid-cols-1";
-  return "grid-cols-1 lg:grid-cols-2";
-}
-
-function SectionHeading({
-  eyebrow,
-  title,
-  subtitle,
-  dark,
-}: {
-  eyebrow: string;
-  title: ReactNode;
-  subtitle?: string;
-  dark?: boolean;
-}) {
+function Meta({ label, value }: { label: string; value: string }) {
   return (
-    <Reveal>
-      <p className="text-sm font-semibold uppercase tracking-widest text-primary">{eyebrow}</p>
-      <h2 className={`mt-3 font-display text-3xl font-bold md:text-5xl ${dark ? "text-white" : "text-ink"}`}>
-        {title}
-      </h2>
-      {subtitle && <p className="mt-3 max-w-xl text-body">{subtitle}</p>}
-    </Reveal>
-  );
-}
-
-function MetaCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[22px] border border-border bg-white p-5 md:p-6">
-      <dt className="text-xs font-semibold uppercase tracking-widest text-body-light">{label}</dt>
-      <dd className="mt-2 break-words font-display text-base font-bold text-ink md:text-lg">{value}</dd>
+    <div className="case-study-meta-card">
+      <dt>{label}</dt>
+      <dd>{value}</dd>
     </div>
   );
 }
 
-function KpiCard({ kpi }: { kpi: ResultKPI }) {
+function Kpi({ kpi }: { kpi: ResultKPI }) {
   return (
-    <div className="h-full rounded-[22px] border border-white/10 bg-white/[0.04] p-6 md:p-8">
-      <p className="font-display text-3xl font-bold text-white md:text-4xl">{kpi.value}</p>
-      <p className="mt-2 text-sm text-white/60">{kpi.label}</p>
+    <div className="case-study-kpi-card">
+      <strong>{kpi.value}</strong>
+      <span>{kpi.label}</span>
     </div>
   );
 }
 
-function StoryCard({ title, body, spanFull }: { title: string; body: string; spanFull?: boolean }) {
+function Story({ title, body, full }: { title: string; body: string; full?: boolean }) {
   return (
-    <div className={`rounded-[22px] border border-border bg-white p-6 shadow-soft md:p-8 ${spanFull ? "md:col-span-2" : ""}`}>
-      <p className="text-xs font-semibold uppercase tracking-widest text-primary">{title}</p>
-      <p className="mt-4 whitespace-pre-wrap text-base leading-relaxed text-body md:text-lg">{body}</p>
+    <div className={`case-study-story-card${full ? " case-study-story-card--full" : ""}`}>
+      <h3>{title}</h3>
+      <p>{body}</p>
     </div>
   );
 }
 
-function CreativeCard({ media }: { media: MediaItem }) {
-  const aspect = media.aspect ?? "auto";
-  const framed = aspect !== "auto";
-
+function MediaCard({ media }: { media: MediaItem }) {
+  const framed = media.aspect && media.aspect !== "auto";
   return (
-    <figure className="w-full overflow-hidden rounded-[22px] border border-border bg-white shadow-soft">
-      <div
-        className={`flex w-full items-center justify-center bg-secondary/40 p-4 ${
-          framed ? "" : "min-h-[280px] md:min-h-[320px]"
-        }`}
-      >
+    <figure className="case-study-media-card">
+      <div className="case-study-media-card__body">
         {media.type === "video" ? (
-          <video
-            src={media.url}
-            controls
-            className={`${mediaAspectClass(aspect, "video")} ${framed ? "w-full" : "max-h-[480px] max-w-full rounded-lg object-contain"}`}
-          />
+          <video src={media.url} controls className={framed ? "cover" : undefined} />
         ) : (
-          <img
-            src={media.url}
-            alt={media.caption ?? ""}
-            className={`${mediaAspectClass(aspect, "image")} ${framed ? "w-full" : "max-h-[480px] max-w-full rounded-lg object-contain"}`}
-          />
+          <img src={media.url} alt={media.caption ?? ""} className={framed ? "cover" : undefined} />
         )}
       </div>
-      {media.caption && (
-        <figcaption className="border-t border-border px-5 py-4 text-sm text-body">{media.caption}</figcaption>
-      )}
+      {media.caption && <figcaption>{media.caption}</figcaption>}
     </figure>
   );
 }
 
 function StatCard({ stat }: { stat: StatImage }) {
   return (
-    <figure className="w-full overflow-hidden rounded-[22px] border border-border bg-white shadow-soft">
-      <div className="w-full bg-white p-3 md:p-4">
-        <img src={stat.url} alt={stat.caption ?? ""} className="w-full rounded-xl object-contain" />
+    <figure className="case-study-media-card">
+      <div className="case-study-media-card__body">
+        <img src={stat.url} alt={stat.caption ?? ""} />
       </div>
-      {stat.caption && (
-        <figcaption className="border-t border-border px-5 py-4 text-sm text-body">{stat.caption}</figcaption>
-      )}
+      {stat.caption && <figcaption>{stat.caption}</figcaption>}
     </figure>
-  );
-}
-
-function CaseStudySkeleton() {
-  return (
-    <div className="container-x w-full animate-pulse py-24">
-      <div className="h-4 w-32 rounded bg-secondary" />
-      <div className="mt-8 h-12 w-2/3 max-w-xl rounded bg-secondary" />
-      <div className="mt-4 h-6 w-1/2 max-w-md rounded bg-secondary" />
-      <div className="mt-10 aspect-[16/9] w-full rounded-[22px] bg-secondary" />
-    </div>
   );
 }

@@ -7,7 +7,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="w-full overflow-x-hidden pt-16 md:pt-20">{children}</main>
+      <main className="site-main">{children}</main>
       <Footer />
       <ScrollAvatar />
     </div>

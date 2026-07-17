@@ -10,6 +10,7 @@ export function Header() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { data: site } = useSection("site");
   const siteName = site?.name ?? "Rao Hamza Saif";
+  const isDetailPage = path.startsWith("/case-studies/") && path.length > "/case-studies/".length;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -20,10 +21,12 @@ export function Header() {
 
   useEffect(() => setOpen(false), [path]);
 
+  const headerSolid = scrolled || isDetailPage;
+
   return (
     <header
       className={`fixed inset-x-0 top-0 z-40 transition-all duration-300 ${
-        scrolled ? "backdrop-blur-xl bg-white/75 border-b border-border" : "bg-transparent"
+        headerSolid ? "border-b border-border bg-white/95 backdrop-blur-xl shadow-soft" : "bg-transparent"
       }`}
     >
       <div className="container-x flex h-16 items-center justify-between md:h-20">
