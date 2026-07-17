@@ -266,16 +266,16 @@
 }
 .avatar-cutout-img {
   display: block;
-  height: 7.5rem;
+  height: 8.75rem;
   width: auto;
   max-width: none;
   object-fit: contain;
   object-position: bottom center;
-  filter: drop-shadow(0 10px 22px rgba(109, 40, 245, 0.22)) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.1));
+  filter: drop-shadow(0 12px 24px rgba(109, 40, 245, 0.25)) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.12));
 }
 @media (min-width: 768px) {
   .avatar-cutout-img {
-    height: 9rem;
+    height: 10.5rem;
   }
 }
 .avatar-cutout-online {

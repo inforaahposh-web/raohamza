@@ -79,8 +79,8 @@ export function ScrollAvatar() {
         <img
           src={avatarUrl}
           alt="Rao Hamza mascot"
-          width={140}
-          height={220}
+          width={160}
+          height={260}
           className="avatar-cutout-img"
           style={{ filter: blink ? "brightness(0.94)" : undefined }}
         />
