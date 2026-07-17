@@ -9,10 +9,10 @@ export const Route = createFileRoute("/funnels")({
   component: FunnelsPage,
   head: () => ({
     meta: [
-      { title: "Prelanders & Funnels — Rao Hamza Saif" },
-      { name: "description", content: "Browse live prelander and funnel examples from performance campaigns." },
-      { property: "og:title", content: "Prelanders & Funnels — Rao Hamza Saif" },
-      { property: "og:description", content: "Interactive prelander and funnel previews." },
+      { title: "Prelanders & Landing Pages — Rao Hamza Saif" },
+      { name: "description", content: "Browse live prelander and landing page examples from performance campaigns." },
+      { property: "og:title", content: "Prelanders & Landing Pages — Rao Hamza Saif" },
+      { property: "og:description", content: "Interactive prelander and landing page previews." },
     ],
   }),
 });
@@ -38,7 +38,7 @@ function FunnelsPage() {
         <Reveal immediate>
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">Work samples</p>
           <h1 className="mt-4 max-w-4xl font-display text-5xl font-bold leading-[0.95] tracking-tight text-ink md:text-8xl">
-            Prelanders & <span className="italic-purple">funnels</span>.
+            Prelanders & <span className="italic-purple">landing pages</span>.
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-body">
             Live page previews. Pick a type, then open any sample — scroll inside the preview box.
@@ -51,7 +51,7 @@ function FunnelsPage() {
               Prelanders
             </KindButton>
             <KindButton active={kind === "funnel"} onClick={() => { setKind("funnel"); setActiveId(null); }}>
-              Funnels
+              Landing Pages
             </KindButton>
           </div>
         </Reveal>
@@ -63,17 +63,17 @@ function FunnelsPage() {
         ) : filtered.length === 0 ? (
           <div className="rounded-[22px] border border-border bg-white p-10 text-center">
             <p className="font-display text-2xl font-bold text-ink">
-              No {kind === "prelander" ? "prelanders" : "funnels"} yet
+              No {kind === "prelander" ? "prelanders" : "landing pages"} yet
             </p>
             <p className="mt-3 text-body">
-              Add some from Admin → Prelanders & Funnels.
+              Add some from Admin → Prelanders & Landing Pages.
             </p>
           </div>
         ) : (
           <div className="grid gap-8 lg:grid-cols-[280px_1fr] lg:gap-10">
             <div className="space-y-2">
               <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-body-light">
-                {kind === "prelander" ? "Prelanders" : "Funnels"} ({filtered.length})
+                {kind === "prelander" ? "Prelanders" : "Landing Pages"} ({filtered.length})
               </p>
               {filtered.map((item) => {
                 const selected = active?.id === item.id;

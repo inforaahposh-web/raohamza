@@ -91,7 +91,7 @@ function AdminPage() {
               <TabsTrigger value="sections" className="flex-1 sm:flex-none">Site sections</TabsTrigger>
               <TabsTrigger value="reviews" className="flex-1 sm:flex-none">Reviews</TabsTrigger>
               <TabsTrigger value="leads" className="flex-1 sm:flex-none">Leads</TabsTrigger>
-              <TabsTrigger value="funnels" className="flex-1 sm:flex-none">Prelanders & Funnels</TabsTrigger>
+              <TabsTrigger value="funnels" className="flex-1 sm:flex-none">Prelanders & Landing Pages</TabsTrigger>
               <TabsTrigger value="footer" className="flex-1 sm:flex-none">Footer</TabsTrigger>
               <TabsTrigger value="cases" className="flex-1 sm:flex-none">Case studies</TabsTrigger>
             </TabsList>
@@ -747,7 +747,7 @@ function SectionCard({ sectionKey }: { sectionKey: "stack" | "industries" }) {
   );
 }
 
-// ============= Prelanders & Funnels library =============
+// ============= Prelanders & Landing Pages library =============
 function FunnelLibraryManager({ onEditingChange }: { onEditingChange?: (editing: boolean) => void }) {
   const qc = useQueryClient();
   const { data: items = [], isLoading, refetch } = useQuery({
@@ -766,7 +766,7 @@ function FunnelLibraryManager({ onEditingChange }: { onEditingChange?: (editing:
   function startNew(kind: FunnelKind) {
     const blank: FunnelLibraryItem = {
       id: crypto.randomUUID(),
-      title: kind === "prelander" ? "New prelander" : "New funnel",
+      title: kind === "prelander" ? "New prelander" : "New landing page",
       description: "",
       kind,
       html: "",
@@ -794,7 +794,7 @@ function FunnelLibraryManager({ onEditingChange }: { onEditingChange?: (editing:
 
   async function save() {
     if (!draft?.title?.trim()) return toast.error("Title is required");
-    if (!draft.html?.trim()) return toast.error("Paste funnel / prelander HTML or iframe");
+    if (!draft.html?.trim()) return toast.error("Paste landing page / prelander HTML or iframe");
 
     const nextItem: FunnelLibraryItem = {
       id: editing?.id || crypto.randomUUID(),
@@ -839,7 +839,7 @@ function FunnelLibraryManager({ onEditingChange }: { onEditingChange?: (editing:
       <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-2xl font-bold text-ink">
-            {isNew ? "New" : "Edit"} {draft.kind === "prelander" ? "prelander" : "funnel"}
+            {isNew ? "New" : "Edit"} {draft.kind === "prelander" ? "prelander" : "landing page"}
           </h2>
           <div className="flex gap-2">
             <Button variant="outline" onClick={cancel}>Cancel</Button>
@@ -861,7 +861,7 @@ function FunnelLibraryManager({ onEditingChange }: { onEditingChange?: (editing:
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="prelander">Prelander</SelectItem>
-                <SelectItem value="funnel">Funnel</SelectItem>
+                <SelectItem value="funnel">Landing Page</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -923,25 +923,25 @@ function FunnelLibraryManager({ onEditingChange }: { onEditingChange?: (editing:
     <div className="rounded-2xl border border-border bg-white p-6 space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl font-bold text-ink">Prelanders & Funnels</h2>
+          <h2 className="font-display text-2xl font-bold text-ink">Prelanders & Landing Pages</h2>
           <p className="mt-1 text-sm text-body">
             These show on the public <Link to="/funnels" className="text-primary underline">/funnels</Link> page.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => startNew("prelander")}><Plus className="h-4 w-4" /> Add prelander</Button>
-          <Button onClick={() => startNew("funnel")}><Plus className="h-4 w-4" /> Add funnel</Button>
+          <Button onClick={() => startNew("funnel")}><Plus className="h-4 w-4" /> Add landing page</Button>
         </div>
       </div>
 
       {isLoading ? (
         <p className="text-sm text-body-light">Loading…</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-body-light">Nothing added yet. Create a prelander or funnel to get started.</p>
+        <p className="text-sm text-body-light">Nothing added yet. Create a prelander or landing page to get started.</p>
       ) : (
         <>
           <LibraryGroup title="Prelanders" items={prelanders} onEdit={startEdit} onDelete={remove} />
-          <LibraryGroup title="Funnels" items={funnels} onEdit={startEdit} onDelete={remove} />
+          <LibraryGroup title="Landing Pages" items={funnels} onEdit={startEdit} onDelete={remove} />
         </>
       )}
     </div>
