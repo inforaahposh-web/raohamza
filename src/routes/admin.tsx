@@ -124,7 +124,7 @@ function HeroImagesEditor() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <ImagePickerRow label="Homepage hero photo" url={state.image_url} onPick={(f) => pick("image_url", f)} onClear={() => setState({ ...state, image_url: null })} />
-        <ImagePickerRow label="Scroll avatar photo" url={state.avatar_url} onPick={(f) => pick("avatar_url", f)} onClear={() => setState({ ...state, avatar_url: null })} />
+        <ImagePickerRow label="Scroll avatar (PNG cutout — transparent background)" url={state.avatar_url} onPick={(f) => pick("avatar_url", f)} onClear={() => setState({ ...state, avatar_url: null })} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

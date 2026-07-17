@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import fallbackAvatar from "@/assets/avatar.png";
+import fallbackAvatar from "@/assets/avatar-cutout.png";
 import { useSection } from "@/lib/cms";
 
 export function ScrollAvatar() {
@@ -64,28 +64,28 @@ export function ScrollAvatar() {
   };
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2 md:bottom-6 md:right-6">
+    <div className="pointer-events-none fixed bottom-2 right-2 z-50 flex flex-col items-end gap-2 md:bottom-4 md:right-4">
       {msg && (
         <div className="pointer-events-auto max-w-[220px] animate-float-up rounded-2xl rounded-br-sm border border-border bg-white px-4 py-2.5 text-sm font-medium text-ink shadow-medium">
           {msg}
         </div>
       )}
       <button
+        type="button"
         aria-label="Say hi"
         onClick={onClick}
-        className={`pointer-events-auto relative grid h-16 w-16 place-items-center rounded-full bg-white shadow-large ring-1 ring-border transition-transform hover:scale-105 md:h-20 md:w-20 ${anim || "animate-avatar-bounce"}`}
+        className={`avatar-cutout-btn pointer-events-auto relative ${anim || "animate-avatar-bounce"}`}
       >
-        <span className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 to-transparent" />
         <img
           src={avatarUrl}
-          alt="Avatar"
-          width={80}
-          height={80}
-          className="h-14 w-14 rounded-full object-cover md:h-16 md:w-16"
-          style={{ filter: blink ? "brightness(0.92)" : undefined }}
+          alt="Rao Hamza mascot"
+          width={120}
+          height={160}
+          className="avatar-cutout-img"
+          style={{ filter: blink ? "brightness(0.94)" : undefined }}
         />
-        <span className="absolute -bottom-0.5 right-1 grid h-4 w-4 place-items-center rounded-full bg-success ring-2 ring-white">
-          <span className="h-1.5 w-1.5 rounded-full bg-white" />
+        <span className="avatar-cutout-online" aria-hidden>
+          <span className="avatar-cutout-online-dot" />
         </span>
       </button>
     </div>
