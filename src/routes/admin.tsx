@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsAdmin, uploadMedia, DEFAULTS, normalizeCaseStudy, slugify, MEDIA_ASPECT_OPTIONS, upsertSiteSection, type CaseStudyRow, type MediaAspect, type ResultKPI, type MediaItem, type ClientReview } from "@/lib/cms";
+import { useIsAdmin, uploadMedia, DEFAULTS, normalizeCaseStudy, slugify, MEDIA_ASPECT_OPTIONS, upsertSiteSection, type CaseStudyRow, type MediaAspect, type ResultKPI, type MediaItem, type ClientReview, type FunnelLibraryItem, type FunnelKind } from "@/lib/cms";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ function AdminPage() {
   const nav = useNavigate();
   const { data: auth, isLoading } = useIsAdmin();
   const [caseEditing, setCaseEditing] = useState(false);
+  const [funnelEditing, setFunnelEditing] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !auth?.user) nav({ to: "/auth" });
@@ -44,6 +45,8 @@ function AdminPage() {
       </div>
     );
   }
+
+  const hideTabs = caseEditing || funnelEditing;
 
   return (
     <div className="min-h-screen bg-secondary">
@@ -64,11 +67,12 @@ function AdminPage() {
 
       <div className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8">
         <Tabs defaultValue="hero">
-          {!caseEditing && (
+          {!hideTabs && (
             <TabsList className="mb-6 flex h-auto w-full flex-wrap justify-start gap-1 bg-white p-1">
               <TabsTrigger value="hero" className="flex-1 sm:flex-none">Hero & Images</TabsTrigger>
               <TabsTrigger value="sections" className="flex-1 sm:flex-none">Site sections</TabsTrigger>
               <TabsTrigger value="reviews" className="flex-1 sm:flex-none">Reviews</TabsTrigger>
+              <TabsTrigger value="funnels" className="flex-1 sm:flex-none">Prelanders & Funnels</TabsTrigger>
               <TabsTrigger value="footer" className="flex-1 sm:flex-none">Footer</TabsTrigger>
               <TabsTrigger value="cases" className="flex-1 sm:flex-none">Case studies</TabsTrigger>
             </TabsList>
@@ -82,6 +86,9 @@ function AdminPage() {
           </TabsContent>
           <TabsContent value="reviews" className="mt-0">
             <ClientReviewsManager />
+          </TabsContent>
+          <TabsContent value="funnels" className="mt-0">
+            <FunnelLibraryManager onEditingChange={setFunnelEditing} />
           </TabsContent>
           <TabsContent value="footer" className="mt-0">
             <FooterSectionEditor />
@@ -645,6 +652,254 @@ function SectionCard({ sectionKey }: { sectionKey: "stack" | "industries" }) {
         </div>
       </div>
       <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={12} className="font-mono text-xs" />
+    </div>
+  );
+}
+
+// ============= Prelanders & Funnels library =============
+function FunnelLibraryManager({ onEditingChange }: { onEditingChange?: (editing: boolean) => void }) {
+  const qc = useQueryClient();
+  const { data: items = [], isLoading, refetch } = useQuery({
+    queryKey: ["admin", "funnel_library"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funnel_library")
+        .select("*")
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data ?? []).map((row) => ({
+        id: String(row.id),
+        title: String(row.title ?? ""),
+        description: String(row.description ?? ""),
+        kind: (row.kind === "prelander" ? "prelander" : "funnel") as FunnelKind,
+        html: String(row.html ?? ""),
+        sort_order: Number(row.sort_order ?? 0),
+        published: Boolean(row.published),
+        created_at: String(row.created_at ?? ""),
+        updated_at: String(row.updated_at ?? ""),
+      })) as FunnelLibraryItem[];
+    },
+  });
+
+  const [editing, setEditing] = useState<FunnelLibraryItem | null>(null);
+  const [draft, setDraft] = useState<Partial<FunnelLibraryItem> | null>(null);
+
+  useEffect(() => {
+    onEditingChange?.(!!editing);
+  }, [editing, onEditingChange]);
+
+  function startNew(kind: FunnelKind) {
+    const blank: FunnelLibraryItem = {
+      id: "",
+      title: kind === "prelander" ? "New prelander" : "New funnel",
+      description: "",
+      kind,
+      html: "",
+      sort_order: (items?.length ?? 0) + 1,
+      published: true,
+      created_at: "",
+      updated_at: "",
+    };
+    setEditing(blank);
+    setDraft(blank);
+  }
+
+  function startEdit(item: FunnelLibraryItem) {
+    setEditing(item);
+    setDraft({ ...item });
+  }
+
+  function cancel() {
+    setEditing(null);
+    setDraft(null);
+  }
+
+  async function save() {
+    if (!draft?.title?.trim()) return toast.error("Title is required");
+    if (!draft.html?.trim()) return toast.error("Paste funnel / prelander HTML or iframe");
+    const payload = {
+      title: draft.title.trim(),
+      description: (draft.description ?? "").trim(),
+      kind: (draft.kind === "prelander" ? "prelander" : "funnel") as FunnelKind,
+      html: draft.html ?? "",
+      sort_order: Number(draft.sort_order ?? 0),
+      published: draft.published !== false,
+    };
+    try {
+      if (editing?.id) {
+        const { error } = await supabase.from("funnel_library").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        toast.success("Saved");
+      } else {
+        const { error } = await supabase.from("funnel_library").insert(payload);
+        if (error) throw error;
+        toast.success("Created");
+      }
+      cancel();
+      await refetch();
+      qc.invalidateQueries({ queryKey: ["cms", "funnel_library"] });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/relation .* does not exist|Could not find the table|schema cache|PGRST205/i.test(msg)) {
+        toast.error("Run funnel_library SQL in Supabase first");
+      } else {
+        toast.error(msg);
+      }
+    }
+  }
+
+  async function remove(id: string) {
+    const { error } = await supabase.from("funnel_library").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Deleted");
+    await refetch();
+    qc.invalidateQueries({ queryKey: ["cms", "funnel_library"] });
+  }
+
+  if (editing && draft) {
+    return (
+      <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-2xl font-bold text-ink">
+            {editing.id ? "Edit" : "New"} {draft.kind === "prelander" ? "prelander" : "funnel"}
+          </h2>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={cancel}>Cancel</Button>
+            <Button onClick={save}><Save className="h-4 w-4" /> Save</Button>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <Label>Title</Label>
+            <Input value={draft.title ?? ""} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+          </div>
+          <div>
+            <Label>Type</Label>
+            <Select
+              value={draft.kind ?? "funnel"}
+              onValueChange={(v) => setDraft({ ...draft, kind: v as FunnelKind })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="prelander">Prelander</SelectItem>
+                <SelectItem value="funnel">Funnel</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Sort order</Label>
+            <Input
+              type="number"
+              value={draft.sort_order ?? 0}
+              onChange={(e) => setDraft({ ...draft, sort_order: Number(e.target.value) })}
+            />
+          </div>
+          <div className="flex items-end gap-3 pb-1">
+            <Switch
+              checked={draft.published !== false}
+              onCheckedChange={(v) => setDraft({ ...draft, published: v })}
+            />
+            <Label>Published on /funnels</Label>
+          </div>
+        </div>
+
+        <div>
+          <Label>Short description</Label>
+          <Input
+            value={draft.description ?? ""}
+            onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+            placeholder="Optional — shows under the title"
+          />
+        </div>
+
+        <div>
+          <Label>HTML / iframe (same as case study funnel)</Label>
+          <Textarea
+            rows={10}
+            className="font-mono text-xs"
+            value={draft.html ?? ""}
+            onChange={(e) => setDraft({ ...draft, html: e.target.value })}
+            placeholder={"<iframe src='...'></iframe> or full HTML"}
+          />
+        </div>
+
+        {draft.html?.trim() ? (
+          <div>
+            <p className="mb-2 text-sm font-semibold text-ink">Preview</p>
+            <div className="case-study-funnel-shell">
+              <div className="funnel-scroll-inner">
+                <CaseStudyFunnel html={draft.html} />
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  const prelanders = items.filter((i) => i.kind === "prelander");
+  const funnels = items.filter((i) => i.kind === "funnel");
+
+  return (
+    <div className="rounded-2xl border border-border bg-white p-6 space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-2xl font-bold text-ink">Prelanders & Funnels</h2>
+          <p className="mt-1 text-sm text-body">
+            These show on the public <Link to="/funnels" className="text-primary underline">/funnels</Link> page.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => startNew("prelander")}><Plus className="h-4 w-4" /> Add prelander</Button>
+          <Button onClick={() => startNew("funnel")}><Plus className="h-4 w-4" /> Add funnel</Button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <p className="text-sm text-body-light">Loading…</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-body-light">Nothing added yet. Create a prelander or funnel to get started.</p>
+      ) : (
+        <>
+          <LibraryGroup title="Prelanders" items={prelanders} onEdit={startEdit} onDelete={remove} />
+          <LibraryGroup title="Funnels" items={funnels} onEdit={startEdit} onDelete={remove} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function LibraryGroup({
+  title,
+  items,
+  onEdit,
+  onDelete,
+}: {
+  title: string;
+  items: FunnelLibraryItem[];
+  onEdit: (item: FunnelLibraryItem) => void;
+  onDelete: (id: string) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold uppercase tracking-widest text-primary">{title} ({items.length})</h3>
+      {items.map((item) => (
+        <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4">
+          <div className="min-w-0">
+            <p className="font-semibold text-ink">{item.title}</p>
+            {item.description ? <p className="text-sm text-body-light line-clamp-1">{item.description}</p> : null}
+            <p className="mt-1 text-xs text-body-light">
+              {item.published ? "Published" : "Draft"} · order {item.sort_order}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => onEdit(item)}>Edit</Button>
+            <Button size="sm" variant="destructive" onClick={() => onDelete(item.id)}><Trash2 className="h-3 w-3" /></Button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -119,6 +119,42 @@ export type Database = {
         }
         Relationships: []
       }
+      funnel_library: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          kind: string
+          html: string
+          sort_order: number
+          published: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string
+          kind: string
+          html?: string
+          sort_order?: number
+          published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string
+          kind?: string
+          html?: string
+          sort_order?: number
+          published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           data: Json

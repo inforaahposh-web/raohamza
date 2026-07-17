@@ -434,3 +434,60 @@ export async function submitClientReview(input: { name: string; title: string; q
     throw new Error(msg || "Could not submit review");
   }
 }
+
+// ---------- Funnel / prelander library ----------
+export type FunnelKind = "prelander" | "funnel";
+
+export type FunnelLibraryItem = {
+  id: string;
+  title: string;
+  description: string;
+  kind: FunnelKind;
+  html: string;
+  sort_order: number;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+function normalizeFunnelItem(row: Record<string, unknown>): FunnelLibraryItem {
+  const kind = row.kind === "prelander" ? "prelander" : "funnel";
+  return {
+    id: String(row.id),
+    title: String(row.title ?? ""),
+    description: String(row.description ?? ""),
+    kind,
+    html: String(row.html ?? ""),
+    sort_order: Number(row.sort_order ?? 0),
+    published: Boolean(row.published),
+    created_at: String(row.created_at ?? ""),
+    updated_at: String(row.updated_at ?? ""),
+  };
+}
+
+async function fetchPublishedFunnelLibrary(): Promise<FunnelLibraryItem[]> {
+  try {
+    const { data, error } = await supabase
+      .from("funnel_library")
+      .select("*")
+      .eq("published", true)
+      .order("sort_order", { ascending: true });
+    if (error) {
+      console.warn("[cms] funnel_library:", error.message);
+      return [];
+    }
+    return (data ?? []).map((row) => normalizeFunnelItem(row as Record<string, unknown>));
+  } catch (e) {
+    console.warn("[cms] funnel_library:", e);
+    return [];
+  }
+}
+
+export function useFunnelLibrary() {
+  return useQuery({
+    queryKey: ["cms", "funnel_library"],
+    queryFn: fetchPublishedFunnelLibrary,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+}
