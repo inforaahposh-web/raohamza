@@ -2,9 +2,9 @@
 // Every section is data-driven — swap this file for CMS fetches later.
 
 export const site = {
-  name: "Rao Hamza Saif",
-  role: "Performance Marketer",
-  tagline: "Paid Ads · Media Buyer · Funnel Strategist · CRM & Automation",
+  name: "Rao Hamza & Team",
+  role: "Marketing & Development Team",
+  tagline: "White Hat & Black Hat Ads · Funnels · Creative & Dev · CRM & Automation",
   email: "hello@raohamzasaif.com",
   whatsapp: "+92 300 0000000",
   telegram: "",
@@ -28,15 +28,15 @@ export const nav = [
 
 export const hero = {
   eyebrow: "Available for select projects — Q3 2026",
-  headingLead: "I build",
+  headingLead: "We build",
   headingItalic: "revenue engines",
   headingTail: "for brands that spend seriously.",
-  sub: "7-figure paid media, funnel systems, and automation stacks — engineered for scale, tracked to the last click.",
+  sub: "7-figure paid media, funnel systems, and automation stacks — engineered for scale, tracked to the last click. White hat and black hat ads, delivered by Hamza's marketing & developer team.",
 };
 
 export const bio = {
   title: "The short version",
-  body: "I'm a performance marketer who runs high-budget ad accounts across Meta, Google, TikTok and native. My work sits at the intersection of media buying, funnel strategy, tracking infrastructure, and CRM automation — the boring stuff that makes campaigns actually profitable.",
+  body: "We're Hamza's marketing & developer team — performance ads, funnels, and product delivery for brands that need results. Our work sits at the intersection of media buying, funnel strategy, tracking infrastructure, and CRM automation — the boring stuff that makes campaigns actually profitable.",
 };
 
 export const stats = [
@@ -47,12 +47,12 @@ export const stats = [
 ];
 
 export const services = [
-  { title: "Paid Media Buying", desc: "Meta, Google, TikTok, YouTube, LinkedIn — full-funnel campaign architecture at scale.", tag: "01" },
-  { title: "Funnel Strategy", desc: "Offer, landing, upsell, retention. Built for the metric that actually matters.", tag: "02" },
-  { title: "Tracking & Attribution", desc: "GTM, GA4, CAPI, server-side. So you stop guessing what worked.", tag: "03" },
-  { title: "CRM & Automation", desc: "GHL, HubSpot, Zoho, n8n, Zapier — lead flows that don't leak.", tag: "04" },
-  { title: "Creative Strategy", desc: "Angles, hooks, UGC direction. Creative is the new targeting.", tag: "05" },
-  { title: "Growth Consulting", desc: "Fractional performance leadership for teams scaling past $100k/mo.", tag: "06" },
+  { title: "White Hat Ads", desc: "Compliant performance marketing on Meta, Google, TikTok and more — full-funnel campaigns built to scale cleanly.", tag: "01" },
+  { title: "Black Hat Ads", desc: "Aggressive acquisition plays for offers that need faster volume — creative angles, traffic systems, and testing loops that push hard.", tag: "02" },
+  { title: "Funnels & Landing Pages", desc: "Offer, prelander, landing, upsell, retention. Built for the metric that actually matters.", tag: "03" },
+  { title: "Tracking & Attribution", desc: "GTM, GA4, CAPI, server-side. So you stop guessing what worked.", tag: "04" },
+  { title: "Creative & Development", desc: "Angles, hooks, UGC direction, and the pages/apps that convert — marketing and build in one team.", tag: "05" },
+  { title: "CRM & Automation", desc: "GHL, HubSpot, Zoho, n8n, Zapier — lead flows that don't leak.", tag: "06" },
 ];
 
 export const stack = [
@@ -170,21 +170,21 @@ export const caseStudies: CaseStudy[] = [
 ];
 
 export const testimonials = [
-  { quote: "Hamza is the kind of operator you plug in and forget about. Numbers just move.", name: "M. Farooq", title: "Founder · DTC Apparel" },
+  { quote: "Hamza's team is the kind of operator unit you plug in and forget about. Numbers just move.", name: "M. Farooq", title: "Founder · DTC Apparel" },
   { quote: "The tracking rebuild alone paid for the engagement in a month.", name: "S. Khan", title: "Head of Growth · Prop Firm" },
-  { quote: "Sharpest media buyer we've worked with. Ships fast, communicates faster.", name: "A. Rehman", title: "CMO · Real Estate Group" },
+  { quote: "Sharpest media team we've worked with. Ships fast, communicates faster.", name: "A. Rehman", title: "CMO · Real Estate Group" },
 ];
 
 export const faqs = [
-  { q: "What's your minimum engagement?", a: "I work with brands spending $30k+/mo on paid media, or teams committing to a 90-day build." },
+  { q: "What's your minimum engagement?", a: "We work with brands spending $30k+/mo on paid media, or teams committing to a 90-day build." },
   { q: "Do you work retainer or project?", a: "Both. Most engagements are 3–6 month retainers; funnel and tracking builds can be scoped as fixed-price sprints." },
-  { q: "Do you handle creative production?", a: "Strategy and direction yes — production runs through my UGC and editor roster." },
-  { q: "Which industries do you avoid?", a: "Anything I can't run cleanly on Meta and Google policy. I'll tell you on the intro call." },
+  { q: "Do you handle creative and development?", a: "Yes — strategy, creative direction, landing pages and product/dev support ship from the same team. Heavy UGC production can run through our roster." },
+  { q: "White hat and black hat — which do you run?", a: "Both. Compliant performance marketing when the offer needs to stay clean on Meta/Google, and aggressive acquisition when volume matters more. We'll tell you what fits on the intro call." },
   { q: "How fast can you start?", a: "Onboarding kicks off within a week of contract. First campaigns typically live in 10–14 days." },
 ];
 
 export const experience = [
-  { year: "2024–now", role: "Independent Performance Consultant", org: "Direct clients across UAE, US, EU" },
+  { year: "2024–now", role: "Founder · Rao Hamza & Team", org: "Marketing & development for clients across UAE, US, EU" },
   { year: "2022–2024", role: "Head of Paid Media", org: "Global prop trading firm" },
   { year: "2020–2022", role: "Senior Media Buyer", org: "DTC and lead-gen agencies" },
   { year: "2018–2020", role: "Digital Marketer", org: "Started running local & affiliate campaigns" },

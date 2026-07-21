@@ -274,8 +274,8 @@ function SiteSectionEditor() {
     <div className="rounded-2xl border border-border bg-white p-6 space-y-4">
       <h3 className="font-display text-lg font-bold text-ink">Site info</h3>
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Name" value={d.name} onChange={(v) => setData({ ...d, name: v })} />
-        <Field label="Role" value={d.role} onChange={(v) => setData({ ...d, role: v })} />
+        <Field label="Brand name" value={d.name} onChange={(v) => setData({ ...d, name: v })} />
+        <Field label="Role / positioning" value={d.role} onChange={(v) => setData({ ...d, role: v })} />
         <Field label="Email" value={d.email} onChange={(v) => setData({ ...d, email: v })} />
         <Field label="WhatsApp" value={d.whatsapp} onChange={(v) => setData({ ...d, whatsapp: v })} />
         <Field
@@ -289,7 +289,7 @@ function SiteSectionEditor() {
         <Field label="Location" value={d.location} onChange={(v) => setData({ ...d, location: v })} />
         <Field label="Hours" value={d.hours} onChange={(v) => setData({ ...d, hours: v })} />
       </div>
-      <Field label="Tagline" value={d.tagline} onChange={(v) => setData({ ...d, tagline: v })} textarea />
+      <Field label="Tagline (team positioning)" value={d.tagline} onChange={(v) => setData({ ...d, tagline: v })} textarea />
       <Button onClick={save}><Save className="h-4 w-4" /> Save site info</Button>
     </div>
   );
@@ -694,7 +694,7 @@ function FooterSectionEditor() {
 
       <Field label="Bottom tagline (right side of copyright)" value={d.bottomTagline} onChange={(v) => setData({ ...d, bottomTagline: v })} />
 
-      <p className="text-xs text-body-light">Copyright name comes from <strong>Site info → Name</strong> in Site sections tab.</p>
+      <p className="text-xs text-body-light">Copyright name comes from <strong>Site info → Brand name</strong> in Site sections tab.</p>
 
       <Button onClick={save}><Save className="h-4 w-4" /> Save footer</Button>
     </div>

@@ -8,9 +8,9 @@ export const Route = createFileRoute("/case-studies/")({
   component: CaseStudiesIndex,
   head: () => ({
     meta: [
-      { title: "Case Studies — Rao Hamza Saif" },
+      { title: "Case Studies — Rao Hamza & Team" },
       { name: "description", content: "Selected performance marketing case studies across real estate, ecommerce, prop trading and more." },
-      { property: "og:title", content: "Case Studies — Rao Hamza Saif" },
+      { property: "og:title", content: "Case Studies — Rao Hamza & Team" },
       { property: "og:description", content: "Real accounts. Real numbers." },
     ],
   }),
@@ -28,7 +28,7 @@ function CaseStudiesIndex() {
           <h1 className="mt-4 max-w-4xl font-display text-5xl font-bold leading-[0.95] tracking-tight text-ink md:text-8xl">
             Numbers over <span className="italic-purple">narratives</span>.
           </h1>
-          <p className="mt-6 max-w-2xl text-lg text-body">A rolling selection of accounts I've built, scaled or rebuilt. Every card is one industry, one system, one outcome.</p>
+          <p className="mt-6 max-w-2xl text-lg text-body">A rolling selection of accounts we've built, scaled or rebuilt. Every card is one industry, one system, one outcome.</p>
         </Reveal>
       </section>
 
@@ -39,7 +39,7 @@ function CaseStudiesIndex() {
           <div className="rounded-[22px] border border-border bg-white p-10 text-center">
             <p className="font-display text-2xl font-bold text-ink">Case studies coming soon</p>
             <p className="mt-3 text-body">New work is being added. Check back shortly or get in touch.</p>
-            <Link to="/contact" className="btn-primary mt-6 inline-flex">Contact me</Link>
+            <Link to="/contact" className="btn-primary mt-6 inline-flex">Get in touch</Link>
           </div>
         ) : (
           <div className="grid gap-5 md:grid-cols-2">

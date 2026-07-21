@@ -10,7 +10,7 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { data: site } = useSection("site");
-  const siteName = site?.name ?? "Rao Hamza Saif";
+  const siteName = site?.name ?? "Rao Hamza & Team";
   const isDetailPage = path.startsWith("/case-studies/") && path.length > "/case-studies/".length;
 
   useEffect(() => {

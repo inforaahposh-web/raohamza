@@ -78,7 +78,7 @@ export function ScrollAvatar() {
       >
         <img
           src={avatarUrl}
-          alt="Rao Hamza mascot"
+          alt="Rao Hamza & Team mascot"
           width={120}
           height={195}
           loading="lazy"

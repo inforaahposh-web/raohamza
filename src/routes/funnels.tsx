@@ -9,9 +9,9 @@ export const Route = createFileRoute("/funnels")({
   component: FunnelsPage,
   head: () => ({
     meta: [
-      { title: "Prelanders & Landing Pages — Rao Hamza Saif" },
-      { name: "description", content: "Browse live prelander and landing page examples from performance campaigns." },
-      { property: "og:title", content: "Prelanders & Landing Pages — Rao Hamza Saif" },
+      { title: "Prelanders & Landing Pages — Rao Hamza & Team" },
+      { name: "description", content: "Browse live prelander and landing page examples from our performance campaigns." },
+      { property: "og:title", content: "Prelanders & Landing Pages — Rao Hamza & Team" },
       { property: "og:description", content: "Interactive prelander and landing page previews." },
     ],
   }),
@@ -41,7 +41,7 @@ function FunnelsPage() {
             Prelanders & <span className="italic-purple">landing pages</span>.
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-body">
-            Live page previews. Pick a type, then open any sample — scroll inside the preview box.
+            Live page previews from campaigns our team has shipped. Pick a type, then open any sample — scroll inside the preview box.
           </p>
         </Reveal>
 

@@ -23,7 +23,7 @@ export const Route = createFileRoute("/case-studies/$slug")({
   component: CaseStudyPage,
   head: ({ params }) => ({
     meta: [
-      { title: `${cleanSlug(params.slug)} — Rao Hamza Saif` },
+      { title: `${cleanSlug(params.slug)} — Rao Hamza & Team` },
       { name: "description", content: "Case study" },
     ],
   }),
@@ -217,7 +217,7 @@ function CaseStudyPage() {
                 </div>
               )}
               <h2>Want similar results?</h2>
-              <p>Book a free intro call — I'll walk through what worked here and whether it fits your account.</p>
+              <p>Book a free intro call — we'll walk through what worked here and whether it fits your account.</p>
             </div>
             <Link to="/contact" className="btn-primary">
               Book a call <ArrowUpRight className="h-4 w-4" />

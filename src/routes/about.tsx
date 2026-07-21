@@ -8,10 +8,10 @@ export const Route = createFileRoute("/about")({
   component: AboutPage,
   head: () => ({
     meta: [
-      { title: "About — Rao Hamza Saif" },
-      { name: "description", content: "Performance marketer working with high-budget accounts across paid media, funnels, tracking and CRM." },
-      { property: "og:title", content: "About — Rao Hamza Saif" },
-      { property: "og:description", content: "The person behind the accounts." },
+      { title: "About — Rao Hamza & Team" },
+      { name: "description", content: "Hamza's marketing & developer team — white hat & black hat ads, funnels, tracking, creative/dev and CRM for high-budget accounts." },
+      { property: "og:title", content: "About — Rao Hamza & Team" },
+      { property: "og:description", content: "The team behind the accounts." },
     ],
   }),
 });
@@ -32,7 +32,7 @@ function AboutPage() {
             <Reveal immediate>
               <p className="text-sm font-semibold uppercase tracking-widest text-primary">About</p>
               <h1 className="mt-4 font-display text-5xl font-bold leading-[0.95] text-ink md:text-8xl">
-                Media buyer, <span className="italic-purple">systems</span> guy.
+                Marketing team, <span className="italic-purple">systems</span> shop.
               </h1>
             </Reveal>
             <Reveal immediate delay={120}>
@@ -87,7 +87,7 @@ function AboutPage() {
         <section className="bg-dark-bg py-20 text-dark-fg md:py-28">
           <div className="container-x">
             <Reveal>
-              <p className="text-sm font-semibold uppercase tracking-widest text-primary">How I work</p>
+              <p className="text-sm font-semibold uppercase tracking-widest text-primary">How we work</p>
               <h2 className="mt-3 font-display text-4xl font-bold leading-tight text-white md:text-6xl">
                 Five stages, <span className="italic-purple">zero fluff</span>.
               </h2>

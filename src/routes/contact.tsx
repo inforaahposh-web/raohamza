@@ -18,9 +18,9 @@ export const Route = createFileRoute("/contact")({
   component: ContactPage,
   head: () => ({
     meta: [
-      { title: "Contact — Rao Hamza Saif" },
-      { name: "description", content: "Book an intro call or send a brief. Response within 24 hours." },
-      { property: "og:title", content: "Contact — Rao Hamza Saif" },
+      { title: "Contact — Rao Hamza & Team" },
+      { name: "description", content: "Book an intro call or send a brief. Our team responds within 24 hours." },
+      { property: "og:title", content: "Contact — Rao Hamza & Team" },
       { property: "og:description", content: "Let's talk about your paid growth." },
     ],
   }),
@@ -95,7 +95,7 @@ function ContactPage() {
             </Reveal>
             <Reveal immediate delay={120}>
               <p className="mt-6 max-w-md text-base text-body sm:text-lg">
-                Tell me a bit about the account, the offer and where you're stuck. I'll come back within a day with a candid take.
+                Tell us a bit about the account, the offer and where you're stuck. Our team will come back within a day with a candid take.
               </p>
             </Reveal>
 
@@ -151,7 +151,7 @@ function ContactPage() {
                   {sending ? "Sending…" : "Send brief"} <ArrowUpRight className="h-4 w-4" />
                 </button>
                 <p className="text-xs text-body-light">
-                  After submit, your lead is saved and Telegram opens so you can message me directly.
+                  After submit, your lead is saved and Telegram opens so you can message the team directly.
                 </p>
               </div>
             </form>

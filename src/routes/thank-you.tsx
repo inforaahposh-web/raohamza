@@ -8,7 +8,7 @@ export const Route = createFileRoute("/thank-you")({
   component: ThankYouPage,
   head: () => ({
     meta: [
-      { title: "Thank you — Rao Hamza Saif" },
+      { title: "Thank you — Rao Hamza & Team" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -57,7 +57,7 @@ function ThankYouPage() {
           </span>
           <h1 className="mt-6 font-display text-4xl font-bold text-ink md:text-6xl">Thank you</h1>
           <p className="mt-4 text-lg text-body">
-            Your brief was submitted. I'll review it and get back to you soon.
+            Your brief was submitted. Our team will review it and get back to you soon.
           </p>
           {hasTelegram ? (
             <a

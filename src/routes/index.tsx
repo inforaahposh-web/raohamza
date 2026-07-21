@@ -225,12 +225,12 @@ function ServicesSection() {
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-primary">Services</p>
             <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-ink md:text-6xl">
-              What I <span className="italic-purple">actually</span> do.
+              What we <span className="italic-purple">actually</span> do.
             </h2>
           </div>
         </Reveal>
         <Reveal delay={120}>
-          <p className="max-w-md text-body">Full-funnel performance marketing — not siloed. Media buying, tracking, funnels and CRM ship as one system.</p>
+          <p className="max-w-md text-body">Full-funnel marketing & development — not siloed. White hat and black hat ads, tracking, funnels and CRM ship as one system.</p>
         </Reveal>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -258,7 +258,7 @@ function StackSection() {
     <section className="bg-dark-bg py-20 text-dark-fg md:py-28">
       <div className="container-x">
         <Reveal>
-          <p className="text-sm font-semibold uppercase tracking-widest text-primary">The stack I run on</p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-primary">The stack we run on</p>
           <h2 className="mt-3 max-w-3xl font-display text-4xl font-bold leading-tight text-white md:text-6xl">
             Platforms, pixels & <span className="italic-purple">pipes</span>.
           </h2>
@@ -389,7 +389,7 @@ function TestimonialsSection() {
             What <span className="italic-purple">clients</span> say.
           </h2>
           <p className="mt-4 max-w-xl text-body">
-            Real reviews from people I've worked with. Leave yours below — it goes live after a quick check.
+            Real reviews from clients we've worked with. Leave yours below — it goes live after a quick check.
           </p>
         </Reveal>
 
@@ -494,7 +494,7 @@ function FaqSection() {
             <h2 className="mt-3 font-display text-4xl font-bold text-ink md:text-6xl">
               Quick <span className="italic-purple">answers</span>.
             </h2>
-            <p className="mt-6 text-body">Have one that's not here? Drop me a line — I answer everything within a day.</p>
+            <p className="mt-6 text-body">Have one that's not here? Drop us a line — our team answers within a day.</p>
           </div>
         </Reveal>
         <Reveal delay={120}>
@@ -535,7 +535,7 @@ function CtaSection() {
               Let's <em className="not-italic underline decoration-white/40 underline-offset-8">actually</em> scale it.
             </h2>
             <ul className="mt-6 flex flex-wrap gap-4 text-sm text-white/80">
-              {["Free 30-min audit", "No lock-in trial month", "Direct access, no account managers"].map((x) => (
+              {["Free 30-min audit", "No lock-in trial month", "Direct access to the team"].map((x) => (
                 <li key={x} className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> {x}</li>
               ))}
             </ul>
